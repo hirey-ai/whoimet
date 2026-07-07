@@ -1,0 +1,27 @@
+{
+  "name": "whoimet",
+  "description": "Snap a photo of the person you just met, share one link, and when they open it and register you're connected on Hi — both ways. A self-contained web app: the photo uploads to your Hi profile, the link carries your live card, and registration opens a conversation plus a friend request between you. No cold outreach, no scraping, no face recognition — the person becomes a connection only because they chose to open your link and sign up.",
+  "homepage": "https://github.com/hirey-ai/whoimet",
+  "web": "https://hirey-ai.github.io/whoimet/",
+  "command": "python3 -m http.server 4180",
+  "tags": [
+    "web",
+    "app",
+    "hirey-hi",
+    "people",
+    "network",
+    "relationships",
+    "connect",
+    "photo",
+    "meet",
+    "consent",
+    "sign-in"
+  ],
+  "capabilities": [
+    "hi.owners",
+    "hi.owner-images",
+    "hi.pairings",
+    "hi.social-relationships"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#F76B4B" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="whoimet" />
+<title>whoimet — snap, share, connect</title>
+<style>
+  :root{
+    --bg:#fbf7f4; --card:#ffffff; --ink:#1d1a19; --sub:#6f6864; --line:#efe7e1;
+    --brand:#f76b4b; --brand-ink:#fff; --brand2:#2f6f6a; --ok:#2f8f5b; --warn:#c9532f;
+    --shadow:0 1px 2px rgba(30,20,15,.05),0 10px 30px rgba(30,20,15,.07);
+    --r:18px; --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#141110; --card:#1e1a18; --ink:#f3ede9; --sub:#a79f99; --line:#2c2622;
+      --brand:#ff7d5e; --brand2:#5bb5ac; --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.5); }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Hiragino Sans GB",sans-serif;
+    background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(78px + var(--safe-b));
+    overscroll-behavior-y:none;
+  }
+  button{font:inherit; cursor:pointer; border:none; background:none; color:inherit}
+  input,textarea{font:inherit}
+  a{color:var(--brand2)}
+  .wrap{max-width:640px; margin:0 auto; padding:0 16px}
+
+  /* header */
+  header{position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 86%, transparent);
+    backdrop-filter:saturate(1.4) blur(12px); border-bottom:1px solid var(--line)}
+  .hbar{display:flex; align-items:center; gap:10px; height:56px}
+  .logo{font-weight:800; letter-spacing:-.03em; font-size:20px}
+  .logo b{color:var(--brand)}
+  .spacer{flex:1}
+  .avatar{width:36px;height:36px;border-radius:50%; background:var(--brand); color:var(--brand-ink);
+    display:grid; place-items:center; font-weight:700; font-size:15px; overflow:hidden}
+  .avatar img{width:100%;height:100%;object-fit:cover}
+  .ghost{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 14px; font-weight:600; font-size:14px}
+
+  /* screens */
+  main{padding-top:14px}
+  .screen{display:none}
+  .screen.on{display:block; animation:fade .25s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .hero{padding:6px 2px 16px}
+  .hero h1{font-size:26px; line-height:1.15; letter-spacing:-.02em; margin:0 0 6px}
+  .hero p{margin:0; color:var(--sub)}
+
+  .cap-cta{display:grid; grid-template-columns:1fr; gap:12px; margin:18px 0 8px}
+  .snap{position:relative; border-radius:var(--r); padding:22px; background:linear-gradient(135deg,var(--brand),#ff9a52);
+    color:#fff; box-shadow:var(--shadow); overflow:hidden; text-align:left}
+  .snap .big{font-size:19px; font-weight:800; letter-spacing:-.01em}
+  .snap .sm{opacity:.92; font-size:13px; margin-top:2px}
+  .snap .cam{position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:44px; opacity:.9}
+  .snap:active{transform:scale(.99)}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .tile{border:1px solid var(--line); background:var(--card); border-radius:var(--r); padding:16px; box-shadow:var(--shadow); font-weight:600}
+  .tile .ic{font-size:22px; display:block; margin-bottom:6px}
+  .tile .sm{font-weight:400; color:var(--sub); font-size:12.5px}
+
+  .sec-t{font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); font-weight:700; margin:26px 2px 10px}
+  .empty{border:1px dashed var(--line); border-radius:var(--r); padding:30px 18px; text-align:center; color:var(--sub)}
+  .empty .e{font-size:30px; margin-bottom:8px}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .met{border:1px solid var(--line); background:var(--card); border-radius:16px; overflow:hidden; box-shadow:var(--shadow)}
+  .met .ph{aspect-ratio:1/1; width:100%; object-fit:cover; background:var(--line); display:block}
+  .met .b{padding:10px 12px}
+  .met .nm{font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .met .mt{color:var(--sub); font-size:12px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .met .act{display:flex; gap:8px; margin-top:10px}
+  .chipbtn{flex:1; border:1px solid var(--line); border-radius:10px; padding:7px 0; text-align:center; font-weight:600; font-size:13px; background:var(--bg)}
+  .chipbtn.pri{background:var(--brand); color:#fff; border-color:transparent}
+  .badge{display:inline-flex;align-items:center;gap:4px; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px}
+  .badge.sent{background:color-mix(in srgb,var(--brand2) 16%,transparent); color:var(--brand2)}
+  .badge.conn{background:color-mix(in srgb,var(--ok) 18%,transparent); color:var(--ok)}
+
+  /* connections */
+  .conn{display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); background:var(--card); border-radius:14px; margin-bottom:10px; box-shadow:var(--shadow)}
+  .conn .av{width:44px;height:44px;border-radius:50%; background:var(--brand2); color:#fff; display:grid;place-items:center;font-weight:700; overflow:hidden; flex:none}
+  .conn .av img{width:100%;height:100%;object-fit:cover}
+  .conn .nm{font-weight:700}
+  .conn .mt{color:var(--sub); font-size:13px}
+  .conn .go{margin-left:auto}
+
+  /* bottom nav */
+  nav{position:fixed; left:0; right:0; bottom:0; z-index:30; background:color-mix(in srgb,var(--bg) 90%,transparent);
+    backdrop-filter:blur(12px); border-top:1px solid var(--line); padding-bottom:var(--safe-b)}
+  .nav{max-width:640px; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr)}
+  .nav button{padding:10px 0 8px; color:var(--sub); font-size:11px; font-weight:600; display:grid; justify-items:center; gap:3px}
+  .nav button .ni{font-size:21px; line-height:1}
+  .nav button.on{color:var(--brand)}
+
+  /* sheet / modal */
+  .scrim{position:fixed; inset:0; background:rgba(20,12,8,.44); z-index:50; opacity:0; pointer-events:none; transition:opacity .2s}
+  .scrim.on{opacity:1; pointer-events:auto}
+  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:60; background:var(--card); border-radius:22px 22px 0 0;
+    padding:8px 18px calc(20px + var(--safe-b)); box-shadow:0 -12px 40px rgba(0,0,0,.25);
+    transform:translateY(102%); transition:transform .28s cubic-bezier(.2,.9,.25,1); max-width:640px; margin:0 auto; max-height:92vh; overflow:auto}
+  .sheet.on{transform:none}
+  .grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 12px}
+  .sheet h2{font-size:20px; letter-spacing:-.01em; margin:2px 0 2px}
+  .sheet .lead{color:var(--sub); margin:0 0 16px; font-size:14px}
+
+  .field{margin:12px 0}
+  .field label{display:block; font-size:12.5px; font-weight:700; color:var(--sub); margin-bottom:6px}
+  .field input, .field textarea{width:100%; border:1px solid var(--line); background:var(--bg); color:var(--ink);
+    border-radius:12px; padding:12px 14px; outline:none}
+  .field input:focus,.field textarea:focus{border-color:var(--brand)}
+  .field textarea{min-height:70px; resize:vertical}
+
+  .btn{display:block; width:100%; text-align:center; background:var(--brand); color:#fff; font-weight:700;
+    border-radius:13px; padding:14px; font-size:16px; box-shadow:var(--shadow)}
+  .btn:disabled{opacity:.5}
+  .btn.sec{background:var(--card); color:var(--ink); border:1px solid var(--line); box-shadow:none}
+  .btn.tiny{padding:10px; font-size:14px}
+  .authrow{display:grid; gap:10px; margin-top:6px}
+  .seg{display:flex; gap:8px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:4px; margin:4px 0 6px}
+  .seg button{flex:1; padding:9px 0; border-radius:9px; font-weight:600; font-size:14px; color:var(--sub)}
+  .seg button.on{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
+  .gbtn{display:flex; align-items:center; justify-content:center; gap:9px; border:1px solid var(--line); background:var(--card); border-radius:13px; padding:12px; font-weight:700}
+  .gg{width:18px;height:18px}
+  .or{display:flex; align-items:center; gap:10px; color:var(--sub); font-size:12px; margin:14px 0}
+  .or::before,.or::after{content:""; height:1px; background:var(--line); flex:1}
+
+  .previewimg{width:100%; border-radius:14px; max-height:46vh; object-fit:cover; display:block; background:var(--line)}
+
+  .toast{position:fixed; left:50%; bottom:calc(92px + var(--safe-b)); transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--bg); padding:11px 16px; border-radius:12px; font-size:14px; font-weight:600;
+    z-index:80; opacity:0; transition:.25s; max-width:90%; text-align:center; box-shadow:var(--shadow)}
+  .toast.on{opacity:1; transform:translateX(-50%)}
+  .spin{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+    display:inline-block; vertical-align:-3px; margin-right:7px; animation:sp .7s linear infinite}
+  .btn.sec .spin{border-color:rgba(0,0,0,.2);border-top-color:var(--ink)}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .hide{display:none !important}
+  .muted{color:var(--sub); font-size:13px}
+  .center{text-align:center}
+  .pill{display:inline-block; background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:4px 10px; font-size:12px; font-weight:600; color:var(--sub)}
+</style>
+</head>
+<body>
+<header><div class="wrap hbar">
+  <div class="logo">who<b>i</b>met</div>
+  <div class="spacer"></div>
+  <button class="avatar" id="meBtn" aria-label="Account">?</button>
+</div></header>
+
+<main class="wrap">
+  <!-- CAPTURE -->
+  <section class="screen on" id="s-capture">
+    <div class="hero">
+      <h1>Met someone good?</h1>
+      <p>Snap a photo. Share one link. When they open it, you’re connected on Hi.</p>
+    </div>
+    <div class="cap-cta">
+      <button class="snap" id="btnCamera">
+        <div class="big">Take a photo</div>
+        <div class="sm">Camera → tag → share</div>
+        <div class="cam">📸</div>
+      </button>
+      <div class="row2">
+        <button class="tile" id="btnLibrary"><span class="ic">🖼️</span>From library<div class="sm">Pick an existing photo</div></button>
+        <button class="tile" id="btnShareMe"><span class="ic">🔗</span>Share my card<div class="sm">No photo needed</div></button>
+      </div>
+    </div>
+    <div class="sec-t">Recent</div>
+    <div id="recentWrap"></div>
+  </section>
+
+  <!-- CONNECTIONS -->
+  <section class="screen" id="s-conn">
+    <div class="hero"><h1>Connections</h1><p>People you met and connected with on Hi.</p></div>
+    <div id="reqWrap"></div>
+    <div class="sec-t">Conversations</div>
+    <div id="connWrap"><div class="empty"><div class="e">🤝</div>No connections yet. Share a photo to make your first one.</div></div>
+  </section>
+</main>
+
+<nav><div class="nav">
+  <button class="on" data-screen="s-capture"><span class="ni">📷</span>Capture</button>
+  <button data-screen="s-conn"><span class="ni">🤝</span>Connections</button>
+  <button id="navMe"><span class="ni">👤</span>Me</button>
+</div></nav>
+
+<!-- hidden inputs -->
+<input type="file" id="fileCam" accept="image/*" capture="environment" class="hide" />
+<input type="file" id="fileLib" accept="image/*" class="hide" />
+
+<div class="scrim" id="scrim"></div>
+
+<!-- COMPOSE SHEET -->
+<div class="sheet" id="sheetCompose">
+  <div class="grab"></div>
+  <h2>Share to connect</h2>
+  <p class="lead">Add a note so they remember the moment. We’ll turn it into one link.</p>
+  <img class="previewimg" id="cImg" alt="" />
+  <div class="field"><label>Who / where did you meet? (optional)</label>
+    <textarea id="cNote" placeholder="e.g. Sarah — coffee after the AI meetup"></textarea></div>
+  <div class="authrow">
+    <button class="btn" id="cShare">Create link & share</button>
+    <button class="btn sec" id="cSave">Just save it</button>
+  </div>
+  <p class="muted center" id="cHint" style="margin-top:12px"></p>
+</div>
+
+<!-- AUTH SHEET -->
+<div class="sheet" id="sheetAuth">
+  <div class="grab"></div>
+  <h2 id="aTitle">Sign in to Hi</h2>
+  <p class="lead" id="aLead">Your real name & card ride along with the photo you share.</p>
+  <button class="gbtn" id="aGoogle">
+    <svg class="gg" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 6.9l7.1 5.5c4.1-3.8 6.5-9.4 6.5-16.9z"/><path fill="#FBBC05" d="M10.4 28.3c-.5-1.5-.8-3-.8-4.8s.3-3.3.8-4.8l-7.8-6.1C.9 15.7 0 19.7 0 23.5s.9 7.8 2.6 10.9l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.6l-7.1-5.5c-2 1.3-4.6 2.1-8.1 2.1-6.4 0-11.8-3.7-13.6-9.3l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+  <div class="or">or</div>
+  <div class="seg" id="aSeg">
+    <button class="on" data-mode="email">Email</button>
+    <button data-mode="phone">Phone</button>
+  </div>
+  <div class="field" id="aIdField"><label id="aIdLabel">Email</label>
+    <input id="aId" inputmode="email" autocomplete="email" placeholder="you@example.com" /></div>
+  <div class="field hide" id="aCodeField"><label>6-digit code</label>
+    <input id="aCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" /></div>
+  <button class="btn" id="aSend">Send code</button>
+  <p class="muted center" id="aMsg" style="margin-top:12px"></p>
+</div>
+
+<!-- ME SHEET -->
+<div class="sheet" id="sheetMe">
+  <div class="grab"></div>
+  <h2>Your Hi card</h2>
+  <p class="lead">This is what people see on the link you share.</p>
+  <div id="meView"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================= config ========================= */
+const HI_BASE = 'https://hi.hirey.ai';
+const APP_DIR = (location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/,''));
+const CLAIM_BASE = location.origin + APP_DIR + 'claim/';
+const SS_KEY = 'wim_hi';           // Hi session
+const DB_NAME = 'whoimet-db';
+
+/* ========================= tiny helpers ========================= */
+const $ = s => document.querySelector(s);
+const el = (t,c,x)=>{const n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;};
+const enc = encodeURIComponent;
+const initials = s => (s||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
+let TOASTt;
+function toast(msg,ms=2600){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(TOASTt); TOASTt=setTimeout(()=>t.classList.remove('on'),ms); }
+function busy(btn,on,label){ if(!btn) return; if(on){ btn.dataset._t=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span>'+(label||'Working…'); } else { btn.disabled=false; if(btn.dataset._t)btn.innerHTML=btn.dataset._t; } }
+
+/* ========================= session ========================= */
+function loadSession(){ try{return JSON.parse(localStorage.getItem(SS_KEY)||'null')}catch(e){return null} }
+function saveSession(s){ localStorage.setItem(SS_KEY, JSON.stringify(s)); paintMe(); }
+function clearSession(){ localStorage.removeItem(SS_KEY); paintMe(); }
+function authed(){ const s=loadSession(); return !!(s && s.access_token && (!s.expires_at || Date.now() < s.expires_at - 60000)); }
+
+/* ========================= Hi API ========================= */
+async function hiAuth(path, body){
+  const r = await fetch(HI_BASE+path, {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body||{})});
+  let j={}; try{ j = await r.json(); }catch(e){}
+  if(!r.ok || j.error){ const e=new Error(j.error||('http_'+r.status)); e.code=j.error; e.detail=j.detail; e.status=r.status; throw e; }
+  return j;
+}
+async function hiCall(capability, payload){
+  const s = loadSession();
+  if(!s || !s.access_token){ const e=new Error('not_signed_in'); e.code='not_signed_in'; throw e; }
+  const r = await fetch(HI_BASE+'/v1/capabilities/'+capability+'/call', {
+    method:'POST', headers:{'content-type':'application/json','authorization':'Bearer '+s.access_token},
+    body:JSON.stringify(payload)
+  });
+  let j={}; try{ j = await r.json(); }catch(e){}
+  const expired = r.status===401 || j?.error==='token_expired' || j?.data?.error_code==='token_expired' || j?.message==='token_expired';
+  if(expired){ clearSession(); const e=new Error('token_expired'); e.code='token_expired'; throw e; }
+  if(!r.ok){ const e=new Error(j.error||j.message||('http_'+r.status)); e.code=j.error||j.message; e.status=r.status; e.data=j; throw e; }
+  if(j && j.error){ const e=new Error(j.error); e.code=j.error; e.data=j; throw e; }
+  return (j && j.result!==undefined) ? j.result : j;   // unwrap capability envelope
+}
+
+/* --- auth flows --- */
+async function startEmail(email){ const j=await hiAuth('/v1/auth/web/email/start',{email}); return j.flow_id; }
+async function verifyEmail(flow_id,code){ return finishAuth(await hiAuth('/v1/auth/web/email/verify',{flow_id,code})); }
+async function startPhone(phone){ const j=await hiAuth('/v1/auth/web/phone/start',{phone}); return j.flow_id; }
+async function verifyPhone(flow_id,code){ return finishAuth(await hiAuth('/v1/auth/web/phone/verify',{flow_id,code})); }
+function finishAuth(j){
+  if(!j.access_token) throw new Error(j.error||'no_token');
+  saveSession({ access_token:j.access_token, expires_at: Date.now() + (Number(j.expires_in||2592000)*1000),
+    agent_id:j.agent_id, workspace_id:j.workspace_id });
+  return j;
+}
+async function googleSignIn(){
+  // pre-open popup synchronously to survive popup blockers
+  const pop = window.open('about:blank','wim_g','width=480,height=640');
+  try{
+    const j = await hiAuth('/v1/auth/web/google/start',{});
+    if(pop) pop.location.href = j.authorize_url; else window.location.href=j.authorize_url;
+    for(let i=0;i<150;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      let p; try{ p = await hiAuth('/v1/auth/web/google/poll',{flow_id:j.flow_id}); }
+      catch(e){ if(e.status===404||e.code==='flow_not_found') break; else continue; }
+      if(p && p.status==='verified'){ try{pop&&pop.close()}catch(_){} return finishAuth(p); }
+    }
+    throw new Error('google_timeout');
+  } finally { try{ if(pop&&!pop.closed) pop.close(); }catch(_){} }
+}
+
+/* --- profile / owner --- */
+let ME = null; // {owner_profile, owner_public_url, public_id}
+function parsePid(url){ const m=String(url||'').match(/\/owner\/(\d+)/); return m?m[1]:null; }
+async function refreshMe(){
+  const g = await hiCall('hi.owners',{action:'get'});
+  const prof = g.owner_profile||g.profile||g||{};
+  ME = { profile:prof, owner_public_url:g.owner_public_url||prof.owner_public_url, public_id: g.public_id||parsePid(g.owner_public_url||prof.owner_public_url) };
+  return ME;
+}
+async function ensureProfile(name){
+  const patch={ visibility_status:'public' };
+  if(name) patch.display_name=name;
+  await hiCall('hi.owners',{action:'update_profile', ...patch});
+  await refreshMe();
+}
+
+/* --- photo upload --- */
+async function uploadPhoto(blob, filename, note){
+  const pre = await hiCall('hi.owner-images',{ action:'presign_upload', kind:'post',
+    original_filename: filename||'whoimet.jpg', mime_type: blob.type||'image/jpeg', size_bytes: blob.size,
+    title:'Met via whoimet', caption_markdown: (note||'').slice(0,300),
+    request_public_on_approve:true, feed_eligible:true });
+  const img = pre.image||pre; const up = pre.upload||{};
+  const url = up.url||up.upload_url||up.put_url;
+  if(!url) throw new Error('no_presign_url');
+  const pr = await fetch(url, {method:'PUT', body:blob, headers: up.required_headers||{} });
+  if(!pr.ok) throw new Error('s3_put_'+pr.status);
+  const fin = await hiCall('hi.owner-images',{ action:'finalize_upload', image_id: img.id, reported_size_bytes: blob.size });
+  const fimg = fin.image||fin||{};
+  return { id: img.id, visibility: fimg.visibility_status||fimg.visibility, download: (fimg.download&&(fimg.download.url))||null };
+}
+
+/* ========================= IndexedDB (local recents) ========================= */
+let _db;
+function db(){ return _db ? Promise.resolve(_db) : new Promise((res,rej)=>{
+  const rq = indexedDB.open(DB_NAME,1);
+  rq.onupgradeneeded = ()=>{ const d=rq.result; if(!d.objectStoreNames.contains('mets')) d.createObjectStore('mets',{keyPath:'id'}); };
+  rq.onsuccess=()=>{ _db=rq.result; res(_db); }; rq.onerror=()=>rej(rq.error);
+});}
+async function putMet(m){ const d=await db(); return new Promise((res,rej)=>{ const t=d.transaction('mets','readwrite'); t.objectStore('mets').put(m); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
+async function allMets(){ const d=await db(); return new Promise((res)=>{ const out=[]; const t=d.transaction('mets','readonly'); const c=t.objectStore('mets').openCursor(); c.onsuccess=()=>{ const cur=c.result; if(cur){out.push(cur.value); cur.continue();} else res(out.sort((a,b)=>b.created-a.created)); }; }); }
+function uid(){ return 'm_'+Math.abs(Date.now()).toString(36)+Math.floor(performance.now()*1000%1e6).toString(36); }
+
+/* ========================= image downscale ========================= */
+function downscale(file, maxSide=1600, q=0.85){
+  return new Promise((res)=>{
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      let {width:w, height:h} = img;
+      const scale = Math.min(1, maxSide/Math.max(w,h));
+      w=Math.round(w*scale); h=Math.round(h*scale);
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cv.toBlob(b=>{ URL.revokeObjectURL(url); res(b||file); },'image/jpeg',q);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(file); };
+    img.src=url;
+  });
+}
+
+/* ========================= UI: sheets ========================= */
+const scrim=$('#scrim'); let openSheetEl=null;
+function openSheet(id){ closeSheet(); const s=$(id); openSheetEl=s; scrim.classList.add('on'); s.classList.add('on'); }
+function closeSheet(){ scrim.classList.remove('on'); document.querySelectorAll('.sheet.on').forEach(s=>s.classList.remove('on')); openSheetEl=null; }
+scrim.addEventListener('click', closeSheet);
+
+/* ========================= screens/nav ========================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', '#'+s.id===('#'+id)));
+  document.querySelectorAll('.nav button[data-screen]').forEach(b=>b.classList.toggle('on', b.dataset.screen===id));
+  if(id==='s-conn') loadConnections();
+}
+document.querySelectorAll('.nav button[data-screen]').forEach(b=> b.addEventListener('click', ()=>showScreen(b.dataset.screen)));
+
+/* ========================= account button ========================= */
+function paintMe(){
+  const a=$('#meBtn'); const s=loadSession();
+  if(authed()){
+    const nm = (ME&&ME.profile&&ME.profile.display_name)||'';
+    const av = ME&&ME.profile&&ME.profile.avatar_url;
+    a.innerHTML = av ? '' : initials(nm||'me');
+    if(av){ const im=new Image(); im.src=av; a.innerHTML=''; a.appendChild(im); }
+  } else { a.textContent='?'; }
+}
+$('#meBtn').addEventListener('click', openMe);
+$('#navMe').addEventListener('click', openMe);
+async function openMe(){
+  if(!authed()){ openAuth('Sign in to Hi','Your real name & card ride along with the photo you share.'); return; }
+  openSheet('#sheetMe'); const v=$('#meView'); v.innerHTML='<p class="muted center">Loading…</p>';
+  try{ await refreshMe(); }catch(e){}
+  const p = (ME&&ME.profile)||{};
+  v.innerHTML='';
+  const card=el('div','conn'); const av=el('div','av', initials(p.display_name||'me'));
+  if(p.avatar_url){ av.innerHTML=''; const im=new Image(); im.src=p.avatar_url; av.appendChild(im); }
+  const info=el('div'); info.style.minWidth=0;
+  info.appendChild(el('div','nm', p.display_name||'(no name yet)'));
+  info.appendChild(el('div','mt', p.headline||'Add a headline so people know who you are'));
+  card.appendChild(av); card.appendChild(info); v.appendChild(card);
+
+  const f1=el('div','field'); f1.innerHTML='<label>Display name</label>'; const i1=el('input'); i1.id='meName'; i1.value=p.display_name||''; i1.placeholder='Your name'; f1.appendChild(i1);
+  const f2=el('div','field'); f2.innerHTML='<label>Headline</label>'; const i2=el('input'); i2.id='meHl'; i2.value=p.headline||''; i2.placeholder='e.g. Founder at Acme · SF'; f2.appendChild(i2);
+  v.appendChild(f1); v.appendChild(f2);
+  const save=el('button','btn','Save card'); v.appendChild(save);
+  save.addEventListener('click', async ()=>{
+    busy(save,true,'Saving…');
+    try{ await hiCall('hi.owners',{action:'update_profile', display_name:i1.value.trim(), headline:i2.value.trim(), visibility_status:'public'}); await refreshMe(); paintMe(); toast('Card saved'); }
+    catch(e){ toast(errText(e)); } finally{ busy(save,false); }
+  });
+  if(ME&&ME.owner_public_url){ const link=el('a','',''); link.href=ME.owner_public_url; link.target='_blank'; link.className='pill'; link.textContent='View public page ↗'; link.style.marginTop='6px'; link.style.display='inline-block'; v.appendChild(link); }
+  const out=el('button','btn sec tiny','Sign out'); out.style.marginTop='14px'; v.appendChild(out);
+  out.addEventListener('click', ()=>{ clearSession(); ME=null; closeSheet(); toast('Signed out'); });
+  paintMe();
+}
+
+/* ========================= AUTH sheet logic ========================= */
+let A_mode='email', A_flow=null, A_after=null;
+function openAuth(title,lead,after){
+  A_after = after||null; A_flow=null; A_mode='email';
+  $('#aTitle').textContent=title||'Sign in to Hi'; $('#aLead').textContent=lead||'';
+  $('#aMsg').textContent=''; $('#aId').value=''; $('#aCode').value='';
+  $('#aCodeField').classList.add('hide'); $('#aSend').textContent='Send code';
+  setAuthMode('email');
+  document.querySelectorAll('#aSeg button').forEach(b=>b.classList.toggle('on', b.dataset.mode==='email'));
+  openSheet('#sheetAuth'); setTimeout(()=>$('#aId').focus(),350);
+}
+function setAuthMode(m){ A_mode=m; A_flow=null; $('#aCodeField').classList.add('hide'); $('#aSend').textContent='Send code';
+  $('#aIdLabel').textContent = m==='email'?'Email':'Phone';
+  const i=$('#aId'); i.value=''; i.placeholder = m==='email'?'you@example.com':'+1 555 123 4567'; i.inputMode = m==='email'?'email':'tel';
+}
+document.querySelectorAll('#aSeg button').forEach(b=> b.addEventListener('click', ()=>{ document.querySelectorAll('#aSeg button').forEach(x=>x.classList.toggle('on',x===b)); setAuthMode(b.dataset.mode); }));
+$('#aGoogle').addEventListener('click', async (e)=>{
+  const btn=e.currentTarget; busy(btn,true,'Opening Google…'); $('#aMsg').textContent='A Google window opened — finish there.';
+  try{ await googleSignIn(); await postAuth(); }
+  catch(err){ $('#aMsg').textContent = err.message==='google_timeout'?'Timed out — try again.':errText(err); }
+  finally{ busy(btn,false); }
+});
+$('#aSend').addEventListener('click', async ()=>{
+  const btn=$('#aSend'); const idv=$('#aId').value.trim(); const msg=$('#aMsg');
+  if(!A_flow){
+    if(!idv){ msg.textContent = A_mode==='email'?'Enter your email.':'Enter your phone.'; return; }
+    busy(btn,true,'Sending…'); msg.textContent='';
+    try{ A_flow = A_mode==='email' ? await startEmail(idv) : await startPhone(idv);
+      $('#aCodeField').classList.remove('hide'); btn.textContent='Verify & continue'; msg.textContent='Code sent to '+idv+'.'; setTimeout(()=>$('#aCode').focus(),100);
+    }catch(e){ msg.textContent=errText(e); } finally{ busy(btn,false); }
+  } else {
+    const code=$('#aCode').value.trim(); if(code.length<4){ msg.textContent='Enter the 6-digit code.'; return; }
+    busy(btn,true,'Verifying…');
+    try{ if(A_mode==='email') await verifyEmail(A_flow,code); else await verifyPhone(A_flow,code); await postAuth(); }
+    catch(e){ msg.textContent=errText(e); busy(btn,false); }
+  }
+});
+async function postAuth(){
+  try{ await refreshMe(); }catch(e){}
+  // if no display name yet, seed from email/phone local part
+  paintMe(); closeSheet(); toast('Signed in ✓');
+  const cb=A_after; A_after=null; if(cb) cb();
+}
+function errText(e){
+  const m = (e&&(e.code||e.message))||'error';
+  const map={ invalid_email:'That email looks off.', invalid_phone:'That phone number looks off.',
+    too_many_codes:'Too many codes — wait a bit.', rate_limited:'Slow down a moment.',
+    wrong_code:'Wrong code — try again.', expired:'Code expired — resend.', flow_not_found:'Code expired — resend.',
+    too_many_attempts:'Too many tries — resend a new code.', token_expired:'Session expired — sign in again.',
+    not_signed_in:'Please sign in first.', phone_binding_required:'Verify your phone/email to continue.' };
+  return map[m] || (typeof m==='string'? m.replace(/_/g,' ') : 'Something went wrong');
+}
+
+/* ========================= CAPTURE flow ========================= */
+$('#btnCamera').addEventListener('click', ()=>$('#fileCam').click());
+$('#btnLibrary').addEventListener('click', ()=>$('#fileLib').click());
+$('#fileCam').addEventListener('change', onPick);
+$('#fileLib').addEventListener('change', onPick);
+let COMPOSE=null;
+async function onPick(e){
+  const file = e.target.files && e.target.files[0]; e.target.value='';
+  if(!file) return;
+  const blob = await downscale(file);
+  const objUrl = URL.createObjectURL(blob);
+  COMPOSE = { id:uid(), blob, created:Date.now() };
+  $('#cImg').src = objUrl; $('#cNote').value=''; $('#cHint').textContent = authed()?'':'You’ll sign in once so your card can ride along.';
+  openSheet('#sheetCompose');
+}
+$('#cSave').addEventListener('click', async ()=>{
+  if(!COMPOSE) return; const btn=$('#cSave'); busy(btn,true,'Saving…');
+  try{ COMPOSE.note=$('#cNote').value.trim(); await putMet({...COMPOSE}); await renderRecent(); closeSheet(); toast('Saved to Recent'); }
+  catch(e){ toast(errText(e)); } finally{ busy(btn,false); }
+});
+$('#cShare').addEventListener('click', ()=> shareFlow(COMPOSE, $('#cShare')) );
+
+async function shareFlow(met, btn){
+  if(!met) return;
+  const note=$('#cNote').value.trim(); met.note=note;
+  if(!authed()){ closeSheet(); openAuth('One tap to sign in','So your name & card ride along with the photo.', ()=>{ openSheet('#sheetCompose'); }); return; }
+  busy(btn,true,'Preparing…');
+  try{
+    await refreshMe();
+    let name = ME&&ME.profile&&ME.profile.display_name;
+    if(!name){ closeSheet(); name = (prompt('Your name (shown on the card you share):','')||'').trim();
+      if(!name){ toast('Add your name first'); return; } openSheet('#sheetCompose'); busy(btn,true,'Preparing…'); }
+    await ensureProfile(name);
+    busy(btn,true,'Uploading photo…');
+    const up = await uploadPhoto(met.blob, 'whoimet.jpg', note);
+    const pid = ME && ME.public_id;
+    const imgUrl = pid ? (HI_BASE+'/owner/'+pid+'/image/'+up.id) : (up.download||'');
+    const link = buildClaimLink({ from:name, hl:(ME.profile.headline||''), a: (loadSession().agent_id||''), p: pid||'', img: imgUrl, note, on: ymd(met.created) });
+    met.hiImageId = up.id; met.shareUrl = link; met.imgUrl = imgUrl; met.shared=true; met.fromName=name;
+    await putMet({...met}); await renderRecent();
+    busy(btn,false); closeSheet();
+    await doShare(link, name, met.blob, note);
+  }catch(e){ busy(btn,false); toast(errText(e)); }
+}
+function ymd(t){ const d=new Date(t); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function buildClaimLink(o){
+  const q=new URLSearchParams();
+  Object.entries(o).forEach(([k,v])=>{ if(v!=null && v!=='') q.set(k, v); });
+  return CLAIM_BASE+'?'+q.toString();
+}
+async function doShare(link, name, blob, note){
+  const text = 'We just met 👋 Tap to connect with '+name+' on Hi.';
+  // 1: files + text
+  try{
+    if(navigator.canShare && blob){
+      const f = new File([blob], 'wemet.jpg', {type: blob.type||'image/jpeg'});
+      if(navigator.canShare({files:[f]})){ await navigator.share({files:[f], text, url:link}); return; }
+    }
+  }catch(err){ if(err&&err.name==='AbortError') return; }
+  // 2: text + url
+  try{ if(navigator.share){ await navigator.share({text, url:link}); return; } }
+  catch(err){ if(err&&err.name==='AbortError') return; }
+  // 3: clipboard
+  try{ await navigator.clipboard.writeText(link); toast('Link copied — paste it to them'); return; }catch(e){}
+  prompt('Copy this link and send it:', link);
+}
+
+/* share my card (no photo) */
+$('#btnShareMe').addEventListener('click', async ()=>{
+  if(!authed()){ openAuth('Sign in first','So your card can be shared.', ()=>$('#btnShareMe').click()); return; }
+  toast('Preparing your card…');
+  try{ await refreshMe(); let name=ME.profile&&ME.profile.display_name;
+    if(!name){ name=(prompt('Your name:','')||'').trim(); if(!name) return; }
+    await ensureProfile(name);
+    const link = buildClaimLink({ from:name, hl:ME.profile.headline||'', a:(loadSession().agent_id||''), p: ME.public_id||'', on: ymd(Date.now()) });
+    await doShare(link, name, null, '');
+  }catch(e){ toast(errText(e)); }
+});
+
+/* ========================= Recent ========================= */
+async function renderRecent(){
+  const wrap=$('#recentWrap'); const mets=await allMets();
+  if(!mets.length){ wrap.innerHTML='<div class="empty"><div class="e">📷</div>No photos yet. Take one to get started.</div>'; return; }
+  wrap.innerHTML=''; const g=el('div','grid');
+  mets.slice(0,12).forEach(m=>{
+    const c=el('div','met');
+    const im=new Image(); im.className='ph'; im.alt='';
+    if(m.blob){ im.src=URL.createObjectURL(m.blob); } else if(m.imgUrl){ im.src=m.imgUrl; }
+    c.appendChild(im);
+    const b=el('div','b');
+    const title = m.note? m.note : 'Untitled moment';
+    b.appendChild(el('div','nm', title));
+    const meta=el('div','mt'); meta.textContent = new Date(m.created).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    b.appendChild(meta);
+    const act=el('div','act');
+    if(m.shared){ const bd=el('span','badge sent','🔗 Link sent'); act.appendChild(bd); }
+    else {
+      const s=el('button','chipbtn pri','Share'); s.addEventListener('click', ()=>{ COMPOSE={...m}; $('#cImg').src=m.blob?URL.createObjectURL(m.blob):(m.imgUrl||''); $('#cNote').value=m.note||''; openSheet('#sheetCompose'); });
+      act.appendChild(s);
+    }
+    if(m.shareUrl){ const cp=el('button','chipbtn','Copy'); cp.addEventListener('click', async ()=>{ try{await navigator.clipboard.writeText(m.shareUrl); toast('Link copied');}catch(e){ prompt('Link:',m.shareUrl);} }); act.appendChild(cp); }
+    b.appendChild(act); c.appendChild(b); g.appendChild(c);
+  });
+  wrap.appendChild(g);
+}
+
+/* ========================= Connections ========================= */
+async function loadConnections(){
+  if(!authed()){ $('#connWrap').innerHTML='<div class="empty"><div class="e">🔒</div>Sign in to see your connections.</div>'; $('#reqWrap').innerHTML=''; return; }
+  // incoming friend requests
+  try{
+    const rl = await hiCall('hi.social-relationships',{action:'request_list', direction:'incoming', status:'pending', limit:20});
+    const reqs = rl.requests||rl.items||[];
+    const rw=$('#reqWrap'); rw.innerHTML='';
+    if(reqs.length){ rw.appendChild(el('div','sec-t','Wants to connect')); reqs.forEach(rq=>{
+      const c=el('div','conn'); const nm = rq.requester_display_name||rq.from_display_name||rq.display_name||'Someone';
+      const av=el('div','av', initials(nm)); const info=el('div'); info.style.minWidth=0;
+      info.appendChild(el('div','nm', nm)); info.appendChild(el('div','mt', (rq.relation_type||'friend')+' request'));
+      const acc=el('button','chipbtn pri','Accept'); acc.style.maxWidth='96px'; acc.style.marginLeft='auto';
+      acc.addEventListener('click', async ()=>{ busy(acc,true,''); try{ await hiCall('hi.social-relationships',{action:'request_respond', request_id: rq.request_id||rq.id, decision:'accepted'}); toast('Connected 🎉'); loadConnections(); }catch(e){ toast(errText(e)); busy(acc,false);} });
+      c.appendChild(av); c.appendChild(info); c.appendChild(acc); rw.appendChild(c);
+    }); }
+  }catch(e){ $('#reqWrap').innerHTML=''; }
+  // conversations (pairings grouped by counterparty)
+  try{
+    const pl = await hiCall('hi.pairings',{action:'list', group_by:'counterparty', list_limit:40});
+    const convs = pl.conversations||pl.pairings||[];
+    const cw=$('#connWrap');
+    if(!convs.length){ cw.innerHTML='<div class="empty"><div class="e">🤝</div>No connections yet. Share a photo to make your first one.</div>'; return; }
+    cw.innerHTML='';
+    convs.forEach(cv=>{
+      const nm = cv.counterparty_display_name||cv.display_name||cv.counterpart_display_name||'Connection';
+      const c=el('div','conn'); const av=el('div','av', initials(nm));
+      if(cv.counterparty_avatar_url){ av.innerHTML=''; const im=new Image(); im.src=cv.counterparty_avatar_url; av.appendChild(im); }
+      const info=el('div'); info.style.minWidth=0;
+      info.appendChild(el('div','nm', nm));
+      const last = cv.last_message_preview||cv.last_message||cv.preview||'Connected';
+      info.appendChild(el('div','mt', last));
+      c.appendChild(av); c.appendChild(info);
+      const pid = cv.counterparty_owner_public_id||cv.owner_public_id;
+      if(pid){ const go=el('a','pill go','Open ↗'); go.href=HI_BASE+'/owner/'+pid; go.target='_blank'; c.appendChild(go); }
+      cw.appendChild(c);
+    });
+  }catch(e){ $('#connWrap').innerHTML='<div class="empty"><div class="e">⚠️</div>'+errText(e)+'</div>'; }
+}
+
+/* ========================= boot ========================= */
+(async function boot(){
+  paintMe();
+  await renderRecent();
+  if(authed()){ try{ await refreshMe(); paintMe(); }catch(e){} }
+})();
+</script>
+</body>
+</html>
