@@ -1,0 +1,53 @@
+<view class="wrap">
+  <view class="hero">
+    <view class="h1">遇到投缘的人？</view>
+    <view class="p">拍张照，发一条微信卡片。对方打开、微信登录，你俩就在 Hi 上连上了。</view>
+  </view>
+
+  <block wx:if="{{!photo}}">
+    <view class="snap" bindtap="chooseCamera">
+      <view class="snap-big">拍一张</view>
+      <view class="snap-sm">相机 → 备注 → 分享</view>
+      <view class="snap-cam">📸</view>
+    </view>
+    <view class="tile" bindtap="chooseAlbum">🖼️ 从相册选一张</view>
+  </block>
+
+  <block wx:else>
+    <view class="card compose">
+      <image class="preview" src="{{photo}}" mode="aspectFill" bindtap="clearPhoto"></image>
+      <view class="field">
+        <view class="label">你的名字（会显示在卡片上）</view>
+        <input class="input" value="{{name}}" placeholder="怎么称呼你" bindinput="onName" />
+      </view>
+      <view class="field">
+        <view class="label">在哪儿 / 见了谁（可选）</view>
+        <input class="input" value="{{note}}" placeholder="例如：AI meetup 后喝咖啡" bindinput="onNote" />
+      </view>
+
+      <block wx:if="{{!authed}}">
+        <button class="btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhone" disabled="{{busy}}">微信登录（生成你的卡片）</button>
+        <view class="muted center" style="margin-top:14rpx">微信登录自动带上已验证的手机号，不用填验证码。</view>
+      </block>
+      <block wx:else>
+        <button wx:if="{{!ready}}" class="btn" bindtap="prepareShare" disabled="{{busy}}">生成连接卡</button>
+        <button wx:else class="btn" open-type="share">发给对方，Ta 打开就连上</button>
+      </block>
+      <button class="btn sec" bindtap="clearPhoto" style="margin-top:16rpx">重拍</button>
+    </view>
+  </block>
+
+  <view class="sec-t">最近</view>
+  <block wx:if="{{recents.length}}">
+    <view class="grid">
+      <view class="met" wx:for="{{recents}}" wx:key="id">
+        <image class="met-ph" src="{{item.photo}}" mode="aspectFill"></image>
+        <view class="met-b">
+          <view class="met-nm ell">{{item.note || '未命名'}}</view>
+          <view class="met-badge">🔗 已生成卡片</view>
+        </view>
+      </view>
+    </view>
+  </block>
+  <view wx:else class="empty"><view class="e">📷</view>还没有照片，拍一张开始吧。</view>
+</view>

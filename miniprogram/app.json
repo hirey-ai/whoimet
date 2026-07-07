@@ -1,0 +1,30 @@
+{
+  "pages": [
+    "pages/capture/index",
+    "pages/connections/index",
+    "pages/me/index",
+    "pages/connect/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#f76b4b",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "whoimet",
+    "backgroundColor": "#fbf7f4",
+    "backgroundColorTop": "#f76b4b",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#8a827c",
+    "selectedColor": "#f76b4b",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/capture/index", "text": "拍照" },
+      { "pagePath": "pages/connections/index", "text": "连接" },
+      { "pagePath": "pages/me/index", "text": "我" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

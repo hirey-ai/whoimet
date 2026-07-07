@@ -1,2 +1,4 @@
 node_modules
 .DS_Store
+miniprogram/project.private.config.json
+miniprogram/node_modules

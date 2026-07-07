@@ -2,9 +2,12 @@
 
 **Snap a photo of the person you just met. Share one link. When they open it and register, you're connected on Hi — both ways.**
 
-A tiny, self-contained web app (no build, no backend, no dependencies) for turning a real-world meeting into a real, consented connection on HiRey's **Hi** platform.
+A tiny, self-contained app for turning a real-world meeting into a real, consented connection on HiRey's **Hi** platform. Two front-ends, same loop:
 
-> Live claim loop: you take a photo → the app uploads it to your Hi profile and mints a share link → you send it → they open it, see the photo + your card, and register in one screen → the app opens a conversation and a friend request between you. No cold outreach, no scraping, no face recognition.
+- **`miniprogram/`** — the **WeChat Mini Program** (native WXML/WXSS/JS). Login is **微信登录** (one-tap `getPhoneNumber` → the user's WeChat-verified Chinese phone, no OTP). This is the primary target for China. It talks to a Hi endpoint `POST /v1/auth/wechat/miniprogram/login` (in `hi-platform`) that exchanges the WeChat code + phone and mints a Hi bearer.
+- **`index.html` + `claim/`** — the **H5 web** version (zero backend), for non-WeChat contexts. Login is email/phone OTP or Google.
+
+> Live loop: you take a photo → it uploads to your Hi profile → you share (a WeChat card, or a link) → they open it, see the photo + your card, and sign in → the app opens a conversation and a friend request between you. No cold outreach, no scraping, no face recognition.
 
 ## The loop
 

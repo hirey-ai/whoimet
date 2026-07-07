@@ -1,0 +1,38 @@
+<view class="wrap">
+  <view class="hero"><view class="h1">连接</view><view class="p">你在 Hi 上遇见并连上的人。</view></view>
+
+  <block wx:if="{{!authed}}">
+    <view class="empty"><view class="e">🔒</view>登录后查看你的连接
+      <view style="margin-top:20rpx"><button class="btn" bindtap="goMe" style="display:inline-block">去登录</button></view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <block wx:if="{{reqs.length}}">
+      <view class="sec-t">想和你连接</view>
+      <view class="conn" wx:for="{{reqs}}" wx:key="id">
+        <view class="avatar">🤝</view>
+        <view class="grow">
+          <view class="conn-nm">{{item.name}}</view>
+          <view class="muted">你遇到的人想和你连接</view>
+        </view>
+        <button class="mini" data-id="{{item.id}}" bindtap="accept">接受</button>
+      </view>
+    </block>
+
+    <view class="sec-t">会话</view>
+    <block wx:if="{{convs.length}}">
+      <view class="conn" wx:for="{{convs}}" wx:key="key">
+        <view class="avatar">
+          <image wx:if="{{item.avatar}}" src="{{item.avatar}}"></image>
+          <text wx:else>{{item.nm[0]}}</text>
+        </view>
+        <view class="grow">
+          <view class="conn-nm ell">{{item.nm}}</view>
+          <view class="muted ell">{{item.last}}</view>
+        </view>
+      </view>
+    </block>
+    <view wx:elif="{{!loading}}" class="empty"><view class="e">🤝</view>还没有连接。分享一张照片，建立你的第一个连接。</view>
+  </block>
+</view>

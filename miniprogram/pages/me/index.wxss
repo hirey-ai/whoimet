@@ -1,0 +1,4 @@
+.pill {
+  display: inline-block; margin-top: 18rpx; background: var(--bg); border: 2rpx solid var(--line);
+  border-radius: 999rpx; padding: 12rpx 26rpx; font-size: 24rpx; font-weight: 600; color: var(--sub);
+}

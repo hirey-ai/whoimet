@@ -1,0 +1,27 @@
+{
+  "description": "whoimet WeChat Mini Program",
+  "appid": "wxREPLACE_WITH_YOUR_APPID",
+  "compileType": "miniprogram",
+  "libVersion": "3.5.5",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "bigPackageSizeSupport": true
+  },
+  "projectname": "whoimet",
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "connect (opened from a shared card)",
+          "pathName": "pages/connect/index",
+          "query": "from=Lawrence%20li&p=1585&a=ag_4fc35cb5fba9&note=Coffee%20after%20the%20meetup",
+          "scene": 1007
+        }
+      ]
+    }
+  }
+}
