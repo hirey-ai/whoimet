@@ -173,13 +173,19 @@ function render(){
   $('#av').textContent = initials(P.from);
   if(P.on){ $('#kicker').textContent = 'You met · '+fmtDate(P.on); }
   if(P.note){ $('#noteBox').classList.remove('hide'); $('#noteText').textContent = clean(P.note); }
-  if(P.img){ const im=new Image(); im.onload=()=>{ const ph=$('#photo'); ph.innerHTML=''; ph.appendChild(im); };
-    im.onerror=()=>{ $('#photoFb').textContent='🖼️'; }; im.src=P.img; }
+  if(P.img){ loadPhoto(P.img); }
   else { $('#photo').style.aspectRatio='16/9'; $('#photo').style.maxHeight='30vh'; $('#photoFb').textContent='👋'; }
   if(P.p){ $('#viewCard').href=HI_BASE+'/owner/'+P.p; }
   document.title = (P.from? clean(P.from)+' — ' : '')+'connect on Hi';
 }
 function fmtDate(s){ const d=new Date(s+'T00:00:00'); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'long',day:'numeric'}); }
+// Hi's /owner/:id/image/:id is a 302 to a presigned S3 URL; <img> won't follow the
+// cross-origin redirect, so resolve it with fetch first, then use the final S3 URL.
+async function loadPhoto(u){
+  const set=src=>{ const im=new Image(); im.onload=()=>{ const ph=$('#photo'); ph.innerHTML=''; ph.appendChild(im); }; im.onerror=()=>{ $('#photoFb').textContent='🖼️'; }; im.src=src; };
+  try{ const r=await fetch(u); if(r.ok && r.url){ set(r.url); return; } }catch(e){}
+  set(u);
+}
 
 /* hydrate live from sender's public owner page */
 async function hydrate(){

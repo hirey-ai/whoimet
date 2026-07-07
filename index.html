@@ -359,6 +359,14 @@ async function putMet(m){ const d=await db(); return new Promise((res,rej)=>{ co
 async function allMets(){ const d=await db(); return new Promise((res)=>{ const out=[]; const t=d.transaction('mets','readonly'); const c=t.objectStore('mets').openCursor(); c.onsuccess=()=>{ const cur=c.result; if(cur){out.push(cur.value); cur.continue();} else res(out.sort((a,b)=>b.created-a.created)); }; }); }
 function uid(){ return 'm_'+Math.abs(Date.now()).toString(36)+Math.floor(performance.now()*1000%1e6).toString(36); }
 
+/* Hi's /owner/:id/image/:id 302-redirects to a presigned S3 URL; <img> won't follow
+   the cross-origin redirect, so resolve via fetch and set the final S3 URL. */
+async function setImg(imgEl, url){
+  if(!url){ return; }
+  try{ const r=await fetch(url); if(r.ok && r.url){ imgEl.src=r.url; return; } }catch(e){}
+  imgEl.src=url;
+}
+
 /* ========================= image downscale ========================= */
 function downscale(file, maxSide=1600, q=0.85){
   return new Promise((res)=>{
@@ -570,7 +578,7 @@ async function renderRecent(){
   mets.slice(0,12).forEach(m=>{
     const c=el('div','met');
     const im=new Image(); im.className='ph'; im.alt='';
-    if(m.blob){ im.src=URL.createObjectURL(m.blob); } else if(m.imgUrl){ im.src=m.imgUrl; }
+    if(m.blob){ im.src=URL.createObjectURL(m.blob); } else if(m.imgUrl){ setImg(im, m.imgUrl); }
     c.appendChild(im);
     const b=el('div','b');
     const title = m.note? m.note : 'Untitled moment';
@@ -580,7 +588,7 @@ async function renderRecent(){
     const act=el('div','act');
     if(m.shared){ const bd=el('span','badge sent','🔗 Link sent'); act.appendChild(bd); }
     else {
-      const s=el('button','chipbtn pri','Share'); s.addEventListener('click', ()=>{ COMPOSE={...m}; $('#cImg').src=m.blob?URL.createObjectURL(m.blob):(m.imgUrl||''); $('#cNote').value=m.note||''; openSheet('#sheetCompose'); });
+      const s=el('button','chipbtn pri','Share'); s.addEventListener('click', ()=>{ COMPOSE={...m}; if(m.blob){ $('#cImg').src=URL.createObjectURL(m.blob); } else { setImg($('#cImg'), m.imgUrl); } $('#cNote').value=m.note||''; openSheet('#sheetCompose'); });
       act.appendChild(s);
     }
     if(m.shareUrl){ const cp=el('button','chipbtn','Copy'); cp.addEventListener('click', async ()=>{ try{await navigator.clipboard.writeText(m.shareUrl); toast('Link copied');}catch(e){ prompt('Link:',m.shareUrl);} }); act.appendChild(cp); }
@@ -598,11 +606,12 @@ async function loadConnections(){
     const reqs = rl.requests||rl.items||[];
     const rw=$('#reqWrap'); rw.innerHTML='';
     if(reqs.length){ rw.appendChild(el('div','sec-t','Wants to connect')); reqs.forEach(rq=>{
-      const c=el('div','conn'); const nm = rq.requester_display_name||rq.from_display_name||rq.display_name||'Someone';
-      const av=el('div','av', initials(nm)); const info=el('div'); info.style.minWidth=0;
-      info.appendChild(el('div','nm', nm)); info.appendChild(el('div','mt', (rq.relation_type||'friend')+' request'));
+      const rid = rq.id||rq.request_id;
+      const nm = rq.requester_display_name||rq.from_display_name||'New connection';
+      const c=el('div','conn'); const av=el('div','av','🤝'); const info=el('div'); info.style.minWidth=0;
+      info.appendChild(el('div','nm', nm)); info.appendChild(el('div','mt', 'Someone you met wants to connect'));
       const acc=el('button','chipbtn pri','Accept'); acc.style.maxWidth='96px'; acc.style.marginLeft='auto';
-      acc.addEventListener('click', async ()=>{ busy(acc,true,''); try{ await hiCall('hi.social-relationships',{action:'request_respond', request_id: rq.request_id||rq.id, decision:'accepted'}); toast('Connected 🎉'); loadConnections(); }catch(e){ toast(errText(e)); busy(acc,false);} });
+      acc.addEventListener('click', async ()=>{ busy(acc,true,''); try{ await hiCall('hi.social-relationships',{action:'request_respond', request_id: rid, decision:'accepted'}); toast('Connected 🎉'); loadConnections(); }catch(e){ toast(errText(e)); busy(acc,false);} });
       c.appendChild(av); c.appendChild(info); c.appendChild(acc); rw.appendChild(c);
     }); }
   }catch(e){ $('#reqWrap').innerHTML=''; }
@@ -614,15 +623,14 @@ async function loadConnections(){
     if(!convs.length){ cw.innerHTML='<div class="empty"><div class="e">🤝</div>No connections yet. Share a photo to make your first one.</div>'; return; }
     cw.innerHTML='';
     convs.forEach(cv=>{
-      const nm = cv.counterparty_display_name||cv.display_name||cv.counterpart_display_name||'Connection';
+      const nm = cv.counterpart_display_name||cv.counterparty_display_name||cv.display_name||'Connection';
       const c=el('div','conn'); const av=el('div','av', initials(nm));
-      if(cv.counterparty_avatar_url){ av.innerHTML=''; const im=new Image(); im.src=cv.counterparty_avatar_url; av.appendChild(im); }
       const info=el('div'); info.style.minWidth=0;
       info.appendChild(el('div','nm', nm));
       const last = cv.last_message_preview||cv.last_message||cv.preview||'Connected';
-      info.appendChild(el('div','mt', last));
+      const mt=el('div','mt', last); info.appendChild(mt);
       c.appendChild(av); c.appendChild(info);
-      const pid = cv.counterparty_owner_public_id||cv.owner_public_id;
+      const pid = cv.counterpart_owner_public_id||cv.counterparty_owner_public_id||cv.owner_public_id;
       if(pid){ const go=el('a','pill go','Open ↗'); go.href=HI_BASE+'/owner/'+pid; go.target='_blank'; c.appendChild(go); }
       cw.appendChild(c);
     });
