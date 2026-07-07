@@ -1,10 +1,7 @@
-.conn {
-  display: flex; align-items: center; gap: 22rpx; padding: 22rpx; margin-bottom: 18rpx;
-  background: var(--card); border: 2rpx solid var(--line); border-radius: 26rpx;
-}
-.conn-nm { font-weight: 700; font-size: 30rpx; }
+.conn-nm { font-weight: 600; font-size: 30rpx; }
 .mini {
-  background: var(--brand); color: #fff; font-weight: 700; font-size: 26rpx;
-  border-radius: 16rpx; padding: 12rpx 26rpx; line-height: 1.2; flex: none;
+  background: var(--ink); color: #fff; font-weight: 600; font-size: 25rpx;
+  border-radius: 999rpx; padding: 12rpx 32rpx; line-height: 1.25; flex: none;
+  box-shadow: 0 8rpx 22rpx rgba(20,18,16,.12);
 }
 .mini::after { border: none; }

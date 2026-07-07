@@ -1,21 +1,13 @@
-.snap {
-  position: relative; border-radius: 32rpx; padding: 44rpx 36rpx; margin: 24rpx 0 20rpx;
-  background: linear-gradient(135deg, #f76b4b, #ff9a52); color: #fff; overflow: hidden;
-}
-.snap-big { font-size: 40rpx; font-weight: 800; }
-.snap-sm { opacity: .92; font-size: 25rpx; margin-top: 6rpx; }
-.snap-cam { position: absolute; right: 40rpx; top: 50%; transform: translateY(-50%); font-size: 84rpx; opacity: .9; }
-.tile {
-  border: 2rpx solid var(--line); background: var(--card); border-radius: 28rpx;
-  padding: 30rpx; text-align: center; font-weight: 700;
+/* moments — web app's meeting card: 4:5 photo, serif caption, tiny meta */
+.met { margin-bottom: 32rpx; }
+.met-ph { width: 100%; aspect-ratio: 4/5; background: #f0ece2; display: block; }
+.met-b { padding: 24rpx 30rpx 30rpx; }
+.met-nm { font-weight: 600; font-size: 31rpx; }
+.met-row { display: flex; align-items: center; gap: 16rpx; margin-top: 16rpx; }
+.met-meta {
+  font-size: 20rpx; text-transform: uppercase; letter-spacing: 2.4rpx;
+  color: var(--ink-faint); font-weight: 600;
 }
 
-.compose { margin-top: 20rpx; }
-.preview { width: 100%; height: 520rpx; border-radius: 24rpx; background: var(--line); margin-bottom: 8rpx; }
-
-.grid { display: flex; flex-wrap: wrap; gap: 22rpx; }
-.met { width: calc(50% - 11rpx); background: var(--card); border: 2rpx solid var(--line); border-radius: 24rpx; overflow: hidden; }
-.met-ph { width: 100%; height: 300rpx; background: var(--line); display: block; }
-.met-b { padding: 16rpx 18rpx; }
-.met-nm { font-weight: 700; font-size: 27rpx; }
-.met-badge { color: var(--brand2); font-size: 22rpx; font-weight: 700; margin-top: 6rpx; }
+/* compose */
+.preview { width: 100%; aspect-ratio: 4/5; background: #f0ece2; display: block; }

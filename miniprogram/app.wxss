@@ -1,52 +1,122 @@
-/* whoimet — global styles (warm networking palette) */
+/* whoimet — paper & ink skin, matched to hirey.ai/met/app (Who I Met web)
+   tokens: ink #161412 · paper #fbfaf7 · blue #2467e8 · green #34c759 · gold #d18a00 */
 page {
-  --bg:#fbf7f4; --card:#ffffff; --ink:#1d1a19; --sub:#6f6864; --line:#efe7e1;
-  --brand:#f76b4b; --brand2:#2f6f6a; --ok:#2f8f5b;
-  background: var(--bg);
+  --ink: #161412;
+  --ink-soft: rgba(22,20,18,.62);
+  --ink-faint: rgba(22,20,18,.42);
+  --blue: #2467e8;
+  --green: #34c759;
+  --green-deep: #1d7c3e;
+  --gold: #d18a00;
+  --paper: #fbfaf7;
+  --card: #ffffff;
+  --line: rgba(22,20,18,.10);
+  --line-2: rgba(22,20,18,.16);
+  background: var(--paper);
   color: var(--ink);
-  font-size: 30rpx;
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 29rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "PingFang SC", Helvetica, Arial, sans-serif;
 }
-view, text { box-sizing: border-box; }
+view, text, button, input { box-sizing: border-box; }
 
-.wrap { padding: 0 32rpx; }
-.hero { padding: 28rpx 8rpx 8rpx; }
-.hero .h1 { font-size: 46rpx; font-weight: 800; letter-spacing: -1rpx; }
-.hero .p { color: var(--sub); font-size: 27rpx; margin-top: 8rpx; }
+.serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", "Noto Serif CJK SC", "Times New Roman", serif; }
 
+.wrap { padding: 0 40rpx; max-width: 960rpx; margin: 0 auto; }
+
+/* hero — serif headline over a hairline, like the web app's "Who did you meet?" */
+.hero { padding: 10rpx 4rpx 42rpx; border-bottom: 1rpx solid var(--line); margin-bottom: 44rpx; }
+.hero .h1 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC", "Noto Serif CJK SC", serif;
+  font-weight: 600; font-size: 52rpx; letter-spacing: -1rpx; line-height: 1.15; margin: 14rpx 0 8rpx;
+}
+.hero .p { color: var(--ink-soft); font-size: 27rpx; line-height: 1.5; }
+
+/* kicker — tiny uppercase tracked label ("TODAY", "TODAY'S MOMENTS") */
+.kicker {
+  font-size: 20rpx; text-transform: uppercase; letter-spacing: 3rpx;
+  color: var(--ink-faint); font-weight: 600; margin: 44rpx 4rpx 20rpx;
+}
+
+/* buttons — pill family from the web app */
 .btn {
-  background: var(--brand); color: #fff; font-weight: 700; font-size: 32rpx;
-  border-radius: 26rpx; padding: 26rpx; text-align: center; line-height: 1.2;
+  border-radius: 999rpx; padding: 25rpx 44rpx; font-size: 29rpx; font-weight: 600;
+  line-height: 1.25; text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 14rpx;
+  background: var(--ink); color: #fff;
+  box-shadow: 0 8rpx 22rpx rgba(20,18,16,.12);
 }
-.btn.sec { background: var(--card); color: var(--ink); border: 2rpx solid var(--line); }
-.btn[disabled] { opacity: .5; }
 .btn::after { border: none; }
+.btn[disabled] { opacity: .45; background: var(--ink) !important; color: #fff !important; }
+.btn.ghost { background: var(--card); color: var(--ink); border: 1rpx solid var(--line); }
+.btn.ghost[disabled] { background: var(--card) !important; color: var(--ink) !important; }
+.btn.soft { background: rgba(36,103,232,.08); color: var(--blue); box-shadow: none; }
+.btn.soft[disabled] { background: rgba(36,103,232,.08) !important; color: var(--blue) !important; }
+.btn-row { display: flex; gap: 18rpx; }
+.btn-row .btn { flex: 1; }
 
+/* cards */
 .card {
-  background: var(--card); border: 2rpx solid var(--line); border-radius: 30rpx;
-  padding: 28rpx; box-shadow: 0 8rpx 30rpx rgba(30,20,15,.06);
+  background: var(--card); border-radius: 36rpx; overflow: hidden;
+  box-shadow: 0 8rpx 22rpx rgba(20,18,16,.12); margin-bottom: 28rpx;
 }
+.card-pad { padding: 28rpx 32rpx; }
 
-.field { margin: 18rpx 0; }
-.field .label { font-size: 25rpx; font-weight: 700; color: var(--sub); margin-bottom: 10rpx; }
+/* list row — icon + title + sub + chevron (web "Share my card" row) */
+.rowcard {
+  display: flex; align-items: center; gap: 22rpx;
+  background: var(--card); border-radius: 32rpx; padding: 24rpx 28rpx;
+  box-shadow: 0 8rpx 22rpx rgba(20,18,16,.12); margin-bottom: 20rpx;
+}
+.rowcard .ic {
+  width: 72rpx; height: 72rpx; border-radius: 50%; flex: none;
+  background: rgba(36,103,232,.10); color: var(--blue);
+  display: flex; align-items: center; justify-content: center; font-size: 34rpx;
+}
+.rowcard .t { font-weight: 600; font-size: 29rpx; }
+.rowcard .s { color: var(--ink-soft); font-size: 24rpx; margin-top: 2rpx; line-height: 1.4; }
+.rowcard .chev { color: var(--ink-faint); font-size: 34rpx; flex: none; }
+
+/* fields */
+.field { margin: 22rpx 0; }
+.field .label { font-size: 23rpx; font-weight: 600; color: var(--ink-soft); margin-bottom: 10rpx; }
 .input {
-  background: var(--bg); border: 2rpx solid var(--line); border-radius: 20rpx;
-  padding: 22rpx 26rpx; font-size: 30rpx;
+  background: var(--card); border: 1rpx solid var(--line-2); border-radius: 22rpx;
+  padding: 22rpx 26rpx; font-size: 29rpx; color: var(--ink);
 }
+.input-on-card { background: var(--paper); }
 
-.sec-t { font-size: 24rpx; letter-spacing: 2rpx; text-transform: uppercase; color: var(--sub); font-weight: 700; margin: 34rpx 8rpx 16rpx; }
-.muted { color: var(--sub); font-size: 25rpx; }
-.center { text-align: center; }
-
+/* avatar — blue-tint circle like the web header avatar */
 .avatar {
-  width: 84rpx; height: 84rpx; border-radius: 50%; background: var(--brand); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-weight: 800; overflow: hidden; flex: none;
+  width: 84rpx; height: 84rpx; border-radius: 50%; flex: none; overflow: hidden;
+  background: rgba(36,103,232,.10); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 32rpx;
+  font-family: "Iowan Old Style", Palatino, Georgia, "Songti SC", serif;
 }
 .avatar image { width: 100%; height: 100%; }
 
-.empty { border: 2rpx dashed var(--line); border-radius: 30rpx; padding: 60rpx 30rpx; text-align: center; color: var(--sub); }
-.empty .e { font-size: 60rpx; margin-bottom: 14rpx; }
+/* empty state — green-tint badge + serif line (web "No one yet today") */
+.empty { text-align: center; padding: 70rpx 30rpx; color: var(--ink-soft); }
+.empty .e {
+  width: 92rpx; height: 92rpx; border-radius: 50%; margin: 0 auto 22rpx;
+  background: rgba(52,199,89,.14); color: var(--green-deep);
+  display: flex; align-items: center; justify-content: center; font-size: 44rpx;
+}
+.empty .t {
+  font-family: "Iowan Old Style", Palatino, Georgia, "Songti SC", serif;
+  font-weight: 600; font-size: 34rpx; color: var(--ink); margin-bottom: 8rpx;
+}
+.empty .s { font-size: 25rpx; line-height: 1.55; }
 
-.row { display: flex; align-items: center; gap: 20rpx; }
+/* status pills (photo public/private, like web card-vis) */
+.vis { display: inline-flex; align-items: center; gap: 8rpx; border-radius: 999rpx; padding: 8rpx 20rpx; font-size: 22rpx; font-weight: 600; }
+.vis.pub { background: rgba(52,199,89,.14); color: var(--green-deep); }
+.vis.priv { background: rgba(22,20,18,.06); color: var(--ink-soft); }
+
+.muted { color: var(--ink-soft); font-size: 24rpx; line-height: 1.5; }
+.faint { color: var(--ink-faint); }
+.center { text-align: center; }
+.row { display: flex; align-items: center; gap: 22rpx; }
 .grow { flex: 1; min-width: 0; }
 .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hairline-top { border-top: 1rpx solid var(--line); padding-top: 30rpx; margin-top: 30rpx; }

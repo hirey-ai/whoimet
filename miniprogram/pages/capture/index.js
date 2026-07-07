@@ -19,6 +19,7 @@ Page({
     }
   },
 
+  goMe() { wx.switchTab({ url: '/pages/me/index' }); },
   chooseCamera() { this.choose('camera'); },
   chooseAlbum() { this.choose('album'); },
   choose(src) {

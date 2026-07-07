@@ -1,57 +1,58 @@
 <view class="wrap">
-  <view class="kicker">你们刚见过面</view>
+  <view class="kicker center" style="margin-top:24rpx">你们刚见过面</view>
 
-  <view class="photo">
-    <image wx:if="{{photo}}" class="photo-img" src="{{photo}}" mode="aspectFill"></image>
-    <view wx:else class="photo-fb">👋</view>
-  </view>
-
-  <view class="card who-card">
-    <view class="row">
-      <view class="avatar big">
-        <image wx:if="{{avatar}}" src="{{avatar}}"></image>
-        <text wx:else>{{fromInitial}}</text>
-      </view>
-      <view class="grow">
-        <view class="who-nm">{{from}}<text wx:if="{{verified}}" class="vf"> ✓</text></view>
-        <view class="who-hl ell">{{hl}}</view>
-      </view>
+  <view class="card">
+    <view class="photo">
+      <image wx:if="{{photo}}" class="photo-img" src="{{photo}}" mode="aspectFill"></image>
+      <view wx:else class="photo-fb">👋</view>
     </view>
-    <view wx:if="{{note}}" class="note">
-      <view class="note-q">Ta 的备注</view>
-      <view>{{note}}</view>
+    <view class="card-pad">
+      <view class="row">
+        <view class="avatar big">
+          <image wx:if="{{avatar}}" src="{{avatar}}"></image>
+          <text wx:else>{{fromInitial}}</text>
+        </view>
+        <view class="grow">
+          <view class="who-nm serif">{{from}}<text wx:if="{{verified}}" class="vf"> ✓</text></view>
+          <view class="muted ell">{{hl}}</view>
+        </view>
+      </view>
+      <view wx:if="{{note}}" class="note">
+        <view class="note-q">Ta 的备注</view>
+        <view class="note-t">{{note}}</view>
+      </view>
     </view>
   </view>
 
   <block wx:if="{{!done}}">
-    <view class="cta-t">和 {{from}} 连接</view>
-    <view class="cta-p">用微信登录，几秒钟你俩就互相连上。</view>
+    <view class="cta-t serif">和 {{from}} 连接</view>
+    <view class="muted center" style="margin-bottom:30rpx">用微信登录，几秒钟你俩就互相连上。</view>
 
-    <view class="field" style="margin-bottom:20rpx">
+    <view class="field" style="margin-bottom:24rpx">
       <view class="label">你的名字（对方会看到）</view>
       <input class="input" value="{{myName}}" placeholder="怎么称呼你" bindinput="onMyName" />
     </view>
     <block wx:if="{{authed}}">
-      <button class="btn" bindtap="oneTap" disabled="{{busy}}">一键连接</button>
+      <button class="btn" bindtap="oneTap" disabled="{{busy}}" style="width:100%">一键连接</button>
     </block>
     <block wx:else>
-      <button class="btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhone" disabled="{{busy}}">微信登录并连接</button>
-      <view class="muted center" style="margin-top:14rpx">微信登录自动带上你已验证的手机号，不用验证码。</view>
+      <button class="btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhone" disabled="{{busy}}" style="width:100%">微信登录并连接</button>
+      <view class="muted center" style="margin-top:16rpx">微信登录自动带上你已验证的手机号，不用验证码。</view>
     </block>
-    <view class="privacy">你的日记只在你自己手里。连接只是把你俩关联起来，不会分享其它内容。</view>
+    <view class="privacy faint">你的日记只在你自己手里。连接只是把你俩关联起来，不会分享其它内容。</view>
   </block>
 
   <block wx:else>
     <view class="done">
-      <view class="done-big">🎉</view>
-      <view wx:if="{{!isSelf}}" class="done-h">已连接！</view>
-      <view wx:else class="done-h">这是你自己的卡片 👋</view>
-      <view wx:if="{{!isSelf}}" class="done-p">你和 <text class="b">{{from}}</text> 现在已经在 Hi 上连上了。</view>
-      <view wx:else class="done-p">这是<text class="b">你</text>分享出去的卡片，发给你遇到的人吧。</view>
-      <button class="btn" bindtap="openConnections">看看我的连接</button>
-      <button class="btn sec" bindtap="goHome" style="margin-top:16rpx">回到 whoimet</button>
+      <view class="done-big"><view class="e-badge">🎉</view></view>
+      <view wx:if="{{!isSelf}}" class="done-h serif">已连接！</view>
+      <view wx:else class="done-h serif">这是你自己的卡片 👋</view>
+      <view wx:if="{{!isSelf}}" class="muted center" style="margin-bottom:34rpx">你和 <text class="b">{{from}}</text> 现在已经在 Hi 上连上了。</view>
+      <view wx:else class="muted center" style="margin-bottom:34rpx">这是<text class="b">你</text>分享出去的卡片，发给你遇到的人吧。</view>
+      <button class="btn" bindtap="openConnections" style="width:100%">看看我的连接</button>
+      <button class="btn ghost" bindtap="goHome" style="width:100%; margin-top:18rpx">回到 Who I Met</button>
     </view>
   </block>
 
-  <view class="foot">由 Hi 提供 · 人对人，经双方同意</view>
+  <view class="foot faint">由 Hi 提供 · 人对人，经双方同意</view>
 </view>

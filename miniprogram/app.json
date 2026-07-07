@@ -6,17 +6,17 @@
     "pages/connect/index"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#f76b4b",
-    "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "whoimet",
-    "backgroundColor": "#fbf7f4",
-    "backgroundColorTop": "#f76b4b",
+    "navigationBarBackgroundColor": "#fbfaf7",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Who I Met",
+    "backgroundColor": "#fbfaf7",
+    "backgroundColorTop": "#fbfaf7",
     "enablePullDownRefresh": false
   },
   "tabBar": {
-    "color": "#8a827c",
-    "selectedColor": "#f76b4b",
-    "backgroundColor": "#ffffff",
+    "color": "#94908a",
+    "selectedColor": "#161412",
+    "backgroundColor": "#fbfaf7",
     "borderStyle": "white",
     "list": [
       { "pagePath": "pages/capture/index", "text": "拍照" },
