@@ -55,4 +55,16 @@ function persistPhoto(tempPath) {
   });
 }
 
-module.exports = { toast, errText, getRecents, addRecent, persistPhoto };
+// relative date for feed cards — 今天 / 昨天 / N天前 / 月-日
+function relDate(ts) {
+  const t = ts ? new Date(ts).getTime() : 0;
+  if (!t) return '';
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  const days = Math.floor((d0.getTime() - new Date(new Date(t).setHours(0, 0, 0, 0)).getTime()) / 86400000);
+  if (days <= 0) return '今天';
+  if (days === 1) return '昨天';
+  if (days < 7) return days + ' 天前';
+  const d = new Date(t); return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+
+module.exports = { toast, errText, getRecents, addRecent, persistPhoto, relDate };

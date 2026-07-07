@@ -55,19 +55,29 @@ async function wechatLogin(phoneDetail) {
 }
 
 /* ---------------- capability calls ---------------- */
-async function call(capability, payload) {
-  const s = getSession();
-  if (!s || !s.access_token) throw err('not_signed_in');
+async function callWith(capability, payload, bearer) {
+  const header = { 'content-type': 'application/json' };
+  if (bearer) header.authorization = 'Bearer ' + bearer;
   const r = await request({
     url: HI_BASE + '/v1/capabilities/' + capability + '/call', method: 'POST',
-    header: { 'content-type': 'application/json', authorization: 'Bearer ' + s.access_token }, data: payload,
+    header, data: payload,
   });
   const j = r.data || {};
-  const expired = r.statusCode === 401 || j.error === 'token_expired' || (j.data && j.data.error_code === 'token_expired');
+  const expired = bearer && (r.statusCode === 401 || j.error === 'token_expired' || (j.data && j.data.error_code === 'token_expired'));
   if (expired) { clearSession(); throw err('token_expired'); }
   if (r.statusCode >= 400) throw err(j.error || j.message || ('http_' + r.statusCode), { data: j });
   if (j && j.error) throw err(j.error, { data: j });
   return j && j.result !== undefined ? j.result : j;
+}
+async function call(capability, payload) {
+  const s = getSession();
+  if (!s || !s.access_token) throw err('not_signed_in');
+  return callWith(capability, payload, s.access_token);
+}
+// anonymous-allowed reads (browse_feed etc.) — send the bearer if we have one, none otherwise
+async function callAnon(capability, payload) {
+  const s = getSession();
+  return callWith(capability, payload, (s && s.access_token) || null);
 }
 
 /* public owner card (anonymous) — used by the connect page to hydrate the sender */
@@ -161,6 +171,6 @@ function contactOwner(publicId) {
 
 module.exports = {
   HI_BASE, getSession, setSession, clearSession, authed,
-  wechatLogin, call, ownerJson, ownerImageUrl,
+  wechatLogin, call, callAnon, ownerJson, ownerImageUrl,
   ME: () => ME, refreshMe, ensureProfile, uploadPhoto, connectTo, contactOwner,
 };

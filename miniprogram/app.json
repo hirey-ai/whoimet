@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/capture/index",
+    "pages/feed/index",
     "pages/connections/index",
     "pages/me/index",
     "pages/connect/index"
@@ -20,6 +21,7 @@
     "borderStyle": "white",
     "list": [
       { "pagePath": "pages/capture/index", "text": "拍照" },
+      { "pagePath": "pages/feed/index", "text": "动态" },
       { "pagePath": "pages/connections/index", "text": "连接" },
       { "pagePath": "pages/me/index", "text": "我" }
     ]
