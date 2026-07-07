@@ -259,7 +259,7 @@ const enc = encodeURIComponent;
 const initials = s => (s||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
 let TOASTt;
 function toast(msg,ms=2600){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(TOASTt); TOASTt=setTimeout(()=>t.classList.remove('on'),ms); }
-function busy(btn,on,label){ if(!btn) return; if(on){ btn.dataset._t=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span>'+(label||'Working…'); } else { btn.disabled=false; if(btn.dataset._t)btn.innerHTML=btn.dataset._t; } }
+function busy(btn,on,label){ if(!btn) return; if(on){ if(!('_t' in btn.dataset)) btn.dataset._t=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span>'+(label||'Working…'); } else { btn.disabled=false; if('_t' in btn.dataset){ btn.innerHTML=btn.dataset._t; delete btn.dataset._t; } } }
 
 /* ========================= session ========================= */
 function loadSession(){ try{return JSON.parse(localStorage.getItem(SS_KEY)||'null')}catch(e){return null} }
@@ -301,18 +301,23 @@ function finishAuth(j){
   return j;
 }
 async function googleSignIn(){
-  // pre-open popup synchronously to survive popup blockers
+  // pre-open popup synchronously to survive popup blockers.
+  // return_to back to a github.io origin is NOT allowlisted by Hi, so same-tab
+  // navigation is a dead-end (no way back). If the popup is blocked, we refuse to
+  // navigate away and surface a fallback instead of stranding the user.
   const pop = window.open('about:blank','wim_g','width=480,height=640');
+  if(!pop){ const e=new Error('popup_blocked'); e.code='popup_blocked'; throw e; }
   try{
     const j = await hiAuth('/v1/auth/web/google/start',{});
-    if(pop) pop.location.href = j.authorize_url; else window.location.href=j.authorize_url;
+    pop.location.href = j.authorize_url;
     for(let i=0;i<150;i++){
       await new Promise(r=>setTimeout(r,2000));
+      if(pop.closed){ const e=new Error('google_cancelled'); e.code='google_cancelled'; throw e; }
       let p; try{ p = await hiAuth('/v1/auth/web/google/poll',{flow_id:j.flow_id}); }
       catch(e){ if(e.status===404||e.code==='flow_not_found') break; else continue; }
-      if(p && p.status==='verified'){ try{pop&&pop.close()}catch(_){} return finishAuth(p); }
+      if(p && p.status==='verified'){ try{pop.close()}catch(_){} return finishAuth(p); }
     }
-    throw new Error('google_timeout');
+    const e=new Error('google_timeout'); e.code='google_timeout'; throw e;
   } finally { try{ if(pop&&!pop.closed) pop.close(); }catch(_){} }
 }
 
@@ -345,7 +350,10 @@ async function uploadPhoto(blob, filename, note){
   if(!pr.ok) throw new Error('s3_put_'+pr.status);
   const fin = await hiCall('hi.owner-images',{ action:'finalize_upload', image_id: img.id, reported_size_bytes: blob.size });
   const fimg = fin.image||fin||{};
-  return { id: img.id, visibility: fimg.visibility_status||fimg.visibility, download: (fimg.download&&(fimg.download.url))||null };
+  const vis = fimg.visibility_status||fimg.visibility;
+  const rev = fimg.review_status||fimg.review;
+  // Only public+approved images resolve on the no-auth /owner/:pid/image/:id route.
+  return { id: img.id, isPublic: (vis==='public' && (rev==='approved'||rev===undefined)) };
 }
 
 /* ========================= IndexedDB (local recents) ========================= */
@@ -356,7 +364,7 @@ function db(){ return _db ? Promise.resolve(_db) : new Promise((res,rej)=>{
   rq.onsuccess=()=>{ _db=rq.result; res(_db); }; rq.onerror=()=>rej(rq.error);
 });}
 async function putMet(m){ const d=await db(); return new Promise((res,rej)=>{ const t=d.transaction('mets','readwrite'); t.objectStore('mets').put(m); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
-async function allMets(){ const d=await db(); return new Promise((res)=>{ const out=[]; const t=d.transaction('mets','readonly'); const c=t.objectStore('mets').openCursor(); c.onsuccess=()=>{ const cur=c.result; if(cur){out.push(cur.value); cur.continue();} else res(out.sort((a,b)=>b.created-a.created)); }; }); }
+async function allMets(){ let d; try{ d=await db(); }catch(e){ return []; } return new Promise((res)=>{ const out=[]; let t; try{ t=d.transaction('mets','readonly'); }catch(e){ return res([]); } t.onerror=()=>res(out); const c=t.objectStore('mets').openCursor(); c.onerror=()=>res(out); c.onsuccess=()=>{ const cur=c.result; if(cur){out.push(cur.value); cur.continue();} else res(out.sort((a,b)=>b.created-a.created)); }; }); }
 function uid(){ return 'm_'+Math.abs(Date.now()).toString(36)+Math.floor(performance.now()*1000%1e6).toString(36); }
 
 /* Hi's /owner/:id/image/:id 302-redirects to a presigned S3 URL; <img> won't follow
@@ -404,7 +412,7 @@ function paintMe(){
   if(authed()){
     const nm = (ME&&ME.profile&&ME.profile.display_name)||'';
     const av = ME&&ME.profile&&ME.profile.avatar_url;
-    a.innerHTML = av ? '' : initials(nm||'me');
+    a.innerHTML = av ? '' : (nm ? initials(nm) : '·');
     if(av){ const im=new Image(); im.src=av; a.innerHTML=''; a.appendChild(im); }
   } else { a.textContent='?'; }
 }
@@ -439,55 +447,72 @@ async function openMe(){
 }
 
 /* ========================= AUTH sheet logic ========================= */
-let A_mode='email', A_flow=null, A_after=null;
+let A_mode='email', A_flow=null, A_flowMode=null, A_after=null;
+const TERMINAL_OTP = ['expired','flow_not_found','too_many_attempts','no_active_challenge'];
+function resetAuthBtn(label){ const b=$('#aSend'); b.disabled=false; delete b.dataset._t; b.textContent=label||'Send code'; }
 function openAuth(title,lead,after){
-  A_after = after||null; A_flow=null; A_mode='email';
+  A_after = after||null; A_flow=null; A_flowMode=null; A_mode='email';
   $('#aTitle').textContent=title||'Sign in to Hi'; $('#aLead').textContent=lead||'';
   $('#aMsg').textContent=''; $('#aId').value=''; $('#aCode').value='';
-  $('#aCodeField').classList.add('hide'); $('#aSend').textContent='Send code';
+  $('#aCodeField').classList.add('hide'); resetAuthBtn('Send code');
+  document.querySelectorAll('#aSeg button').forEach(b=>{ b.disabled=false; b.classList.toggle('on', b.dataset.mode==='email'); });
   setAuthMode('email');
-  document.querySelectorAll('#aSeg button').forEach(b=>b.classList.toggle('on', b.dataset.mode==='email'));
   openSheet('#sheetAuth'); setTimeout(()=>$('#aId').focus(),350);
 }
-function setAuthMode(m){ A_mode=m; A_flow=null; $('#aCodeField').classList.add('hide'); $('#aSend').textContent='Send code';
+function setAuthMode(m){ A_mode=m; A_flow=null; A_flowMode=null; $('#aCodeField').classList.add('hide'); resetAuthBtn('Send code');
   $('#aIdLabel').textContent = m==='email'?'Email':'Phone';
   const i=$('#aId'); i.value=''; i.placeholder = m==='email'?'you@example.com':'+1 555 123 4567'; i.inputMode = m==='email'?'email':'tel';
 }
-document.querySelectorAll('#aSeg button').forEach(b=> b.addEventListener('click', ()=>{ document.querySelectorAll('#aSeg button').forEach(x=>x.classList.toggle('on',x===b)); setAuthMode(b.dataset.mode); }));
+document.querySelectorAll('#aSeg button').forEach(b=> b.addEventListener('click', ()=>{ if(b.disabled) return; document.querySelectorAll('#aSeg button').forEach(x=>x.classList.toggle('on',x===b)); setAuthMode(b.dataset.mode); }));
 $('#aGoogle').addEventListener('click', async (e)=>{
   const btn=e.currentTarget; busy(btn,true,'Opening Google…'); $('#aMsg').textContent='A Google window opened — finish there.';
   try{ await googleSignIn(); await postAuth(); }
-  catch(err){ $('#aMsg').textContent = err.message==='google_timeout'?'Timed out — try again.':errText(err); }
+  catch(err){
+    if(err.code==='popup_blocked') $('#aMsg').textContent='Couldn’t open the Google window here — use email or phone below, or open this in your browser.';
+    else if(err.code==='google_timeout') $('#aMsg').textContent='Timed out — try again.';
+    else if(err.code==='google_cancelled') $('#aMsg').textContent='Google window closed — try again.';
+    else $('#aMsg').textContent=errText(err);
+  }
   finally{ busy(btn,false); }
 });
 $('#aSend').addEventListener('click', async ()=>{
   const btn=$('#aSend'); const idv=$('#aId').value.trim(); const msg=$('#aMsg');
+  const seg=document.querySelectorAll('#aSeg button');
   if(!A_flow){
     if(!idv){ msg.textContent = A_mode==='email'?'Enter your email.':'Enter your phone.'; return; }
-    busy(btn,true,'Sending…'); msg.textContent='';
-    try{ A_flow = A_mode==='email' ? await startEmail(idv) : await startPhone(idv);
-      $('#aCodeField').classList.remove('hide'); btn.textContent='Verify & continue'; msg.textContent='Code sent to '+idv+'.'; setTimeout(()=>$('#aCode').focus(),100);
-    }catch(e){ msg.textContent=errText(e); } finally{ busy(btn,false); }
+    const mode=A_mode; busy(btn,true,'Sending…'); seg.forEach(b=>b.disabled=true); msg.textContent='';
+    try{ const flow = mode==='email' ? await startEmail(idv) : await startPhone(idv);
+      if(A_mode!==mode) return;                      // user switched tab mid-flight → ignore stale
+      A_flow=flow; A_flowMode=mode;
+      $('#aCodeField').classList.remove('hide'); msg.textContent='Code sent to '+idv+'.'; setTimeout(()=>$('#aCode').focus(),100);
+    }catch(e){ msg.textContent=errText(e); }
+    finally{ busy(btn,false); seg.forEach(b=>b.disabled=false); if(A_flow) btn.textContent='Verify & continue'; }
   } else {
     const code=$('#aCode').value.trim(); if(code.length<4){ msg.textContent='Enter the 6-digit code.'; return; }
     busy(btn,true,'Verifying…');
-    try{ if(A_mode==='email') await verifyEmail(A_flow,code); else await verifyPhone(A_flow,code); await postAuth(); }
-    catch(e){ msg.textContent=errText(e); busy(btn,false); }
+    try{ if(A_flowMode==='email') await verifyEmail(A_flow,code); else await verifyPhone(A_flow,code); await postAuth(); return; }
+    catch(e){ msg.textContent=errText(e);
+      if(TERMINAL_OTP.includes(e.code)){ A_flow=null; A_flowMode=null; $('#aCodeField').classList.add('hide'); $('#aCode').value=''; }
+    }
+    finally{ busy(btn,false); btn.textContent = A_flow ? 'Verify & continue' : 'Send code'; }
   }
 });
 async function postAuth(){
+  A_flow=null; A_flowMode=null;
   try{ await refreshMe(); }catch(e){}
-  // if no display name yet, seed from email/phone local part
   paintMe(); closeSheet(); toast('Signed in ✓');
   const cb=A_after; A_after=null; if(cb) cb();
 }
 function errText(e){
   const m = (e&&(e.code||e.message))||'error';
-  const map={ invalid_email:'That email looks off.', invalid_phone:'That phone number looks off.',
-    too_many_codes:'Too many codes — wait a bit.', rate_limited:'Slow down a moment.',
-    wrong_code:'Wrong code — try again.', expired:'Code expired — resend.', flow_not_found:'Code expired — resend.',
+  const map={ invalid_email:'That email looks off.', invalid_phone:'That phone number looks off.', masked_phone:'That phone number looks off.',
+    too_many_codes:'Too many codes — wait a bit.', resend_cooldown:'Just sent one — wait a moment before resending.', rate_limited:'Slow down a moment.',
+    wrong_code:'Wrong code — try again.', expired:'Code expired — resend.', flow_not_found:'Code expired — resend.', no_active_challenge:'Code expired — resend.',
     too_many_attempts:'Too many tries — resend a new code.', token_expired:'Session expired — sign in again.',
-    not_signed_in:'Please sign in first.', phone_binding_required:'Verify your phone/email to continue.' };
+    not_signed_in:'Please sign in first.', phone_binding_required:'Verify your phone/email to continue.',
+    email_failed:'Couldn’t send the email — try phone instead.', sms_failed:'Couldn’t send the text — try email instead.',
+    ses_unconfigured:'Email sign-in is unavailable — try phone.', twilio_unconfigured:'Phone sign-in is unavailable — try email.',
+    insufficient_credits:'You’re out of connect credits for now.', popup_blocked:'Couldn’t open a window here — try email or phone.' };
   return map[m] || (typeof m==='string'? m.replace(/_/g,' ') : 'Something went wrong');
 }
 
@@ -496,14 +521,14 @@ $('#btnCamera').addEventListener('click', ()=>$('#fileCam').click());
 $('#btnLibrary').addEventListener('click', ()=>$('#fileLib').click());
 $('#fileCam').addEventListener('change', onPick);
 $('#fileLib').addEventListener('change', onPick);
-let COMPOSE=null;
+let COMPOSE=null, _cImgUrl=null;
+function setComposePreview(blob){ if(_cImgUrl){ try{URL.revokeObjectURL(_cImgUrl)}catch(e){} _cImgUrl=null; } if(blob){ _cImgUrl=URL.createObjectURL(blob); $('#cImg').src=_cImgUrl; } }
 async function onPick(e){
   const file = e.target.files && e.target.files[0]; e.target.value='';
   if(!file) return;
   const blob = await downscale(file);
-  const objUrl = URL.createObjectURL(blob);
   COMPOSE = { id:uid(), blob, created:Date.now() };
-  $('#cImg').src = objUrl; $('#cNote').value=''; $('#cHint').textContent = authed()?'':'You’ll sign in once so your card can ride along.';
+  setComposePreview(blob); $('#cNote').value=''; $('#cHint').textContent = authed()?'':'You’ll sign in once so your card can ride along.';
   openSheet('#sheetCompose');
 }
 $('#cSave').addEventListener('click', async ()=>{
@@ -521,19 +546,22 @@ async function shareFlow(met, btn){
   try{
     await refreshMe();
     let name = ME&&ME.profile&&ME.profile.display_name;
-    if(!name){ closeSheet(); name = (prompt('Your name (shown on the card you share):','')||'').trim();
-      if(!name){ toast('Add your name first'); return; } openSheet('#sheetCompose'); busy(btn,true,'Preparing…'); }
+    if(!name){ name = (prompt('Your name (shown on the card you share):','')||'').trim();
+      if(!name){ toast('Add your name first'); return; } }              // finally re-enables the button
     await ensureProfile(name);
     busy(btn,true,'Uploading photo…');
     const up = await uploadPhoto(met.blob, 'whoimet.jpg', note);
     const pid = ME && ME.public_id;
-    const imgUrl = pid ? (HI_BASE+'/owner/'+pid+'/image/'+up.id) : (up.download||'');
+    // Durable public image URL only works when the image is public+approved AND the owner profile is public.
+    const imgUrl = (pid && up.isPublic) ? (HI_BASE+'/owner/'+pid+'/image/'+up.id) : '';
+    if(pid && !up.isPublic) toast('Photo is pending review — it’ll appear once approved; the photo is still shared directly.');
     const link = buildClaimLink({ from:name, hl:(ME.profile.headline||''), a: (loadSession().agent_id||''), p: pid||'', img: imgUrl, note, on: ymd(met.created) });
     met.hiImageId = up.id; met.shareUrl = link; met.imgUrl = imgUrl; met.shared=true; met.fromName=name;
     await putMet({...met}); await renderRecent();
-    busy(btn,false); closeSheet();
+    closeSheet();
     await doShare(link, name, met.blob, note);
-  }catch(e){ busy(btn,false); toast(errText(e)); }
+  }catch(e){ toast(errText(e)); }
+  finally{ busy(btn,false); }
 }
 function ymd(t){ const d=new Date(t); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function buildClaimLink(o){
@@ -571,14 +599,16 @@ $('#btnShareMe').addEventListener('click', async ()=>{
 });
 
 /* ========================= Recent ========================= */
+let _recentUrls=[];
 async function renderRecent(){
   const wrap=$('#recentWrap'); const mets=await allMets();
+  _recentUrls.forEach(u=>{ try{URL.revokeObjectURL(u)}catch(e){} }); _recentUrls=[];   // free prior render's blob URLs
   if(!mets.length){ wrap.innerHTML='<div class="empty"><div class="e">📷</div>No photos yet. Take one to get started.</div>'; return; }
   wrap.innerHTML=''; const g=el('div','grid');
   mets.slice(0,12).forEach(m=>{
     const c=el('div','met');
     const im=new Image(); im.className='ph'; im.alt='';
-    if(m.blob){ im.src=URL.createObjectURL(m.blob); } else if(m.imgUrl){ setImg(im, m.imgUrl); }
+    if(m.blob){ const u=URL.createObjectURL(m.blob); _recentUrls.push(u); im.src=u; } else if(m.imgUrl){ setImg(im, m.imgUrl); }
     c.appendChild(im);
     const b=el('div','b');
     const title = m.note? m.note : 'Untitled moment';
@@ -588,7 +618,7 @@ async function renderRecent(){
     const act=el('div','act');
     if(m.shared){ const bd=el('span','badge sent','🔗 Link sent'); act.appendChild(bd); }
     else {
-      const s=el('button','chipbtn pri','Share'); s.addEventListener('click', ()=>{ COMPOSE={...m}; if(m.blob){ $('#cImg').src=URL.createObjectURL(m.blob); } else { setImg($('#cImg'), m.imgUrl); } $('#cNote').value=m.note||''; openSheet('#sheetCompose'); });
+      const s=el('button','chipbtn pri','Share'); s.addEventListener('click', ()=>{ COMPOSE={...m}; if(m.blob){ setComposePreview(m.blob); } else { setComposePreview(null); setImg($('#cImg'), m.imgUrl); } $('#cNote').value=m.note||''; openSheet('#sheetCompose'); });
       act.appendChild(s);
     }
     if(m.shareUrl){ const cp=el('button','chipbtn','Copy'); cp.addEventListener('click', async ()=>{ try{await navigator.clipboard.writeText(m.shareUrl); toast('Link copied');}catch(e){ prompt('Link:',m.shareUrl);} }); act.appendChild(cp); }
@@ -598,6 +628,13 @@ async function renderRecent(){
 }
 
 /* ========================= Connections ========================= */
+const _ownerCache={};
+async function resolveOwnerName(pid){
+  if(_ownerCache[pid]!==undefined) return _ownerCache[pid];
+  try{ const r=await fetch(HI_BASE+'/owner/'+pid+'.json',{headers:{accept:'application/json'}});
+    if(r.ok){ const o=await r.json(); _ownerCache[pid]={display_name:o.display_name, avatar_url:o.avatar_url}; return _ownerCache[pid]; } }catch(e){}
+  _ownerCache[pid]=null; return null;
+}
 async function loadConnections(){
   if(!authed()){ $('#connWrap').innerHTML='<div class="empty"><div class="e">🔒</div>Sign in to see your connections.</div>'; $('#reqWrap').innerHTML=''; return; }
   // incoming friend requests
@@ -623,16 +660,21 @@ async function loadConnections(){
     if(!convs.length){ cw.innerHTML='<div class="empty"><div class="e">🤝</div>No connections yet. Share a photo to make your first one.</div>'; return; }
     cw.innerHTML='';
     convs.forEach(cv=>{
-      const nm = cv.counterpart_display_name||cv.counterparty_display_name||cv.display_name||'Connection';
-      const c=el('div','conn'); const av=el('div','av', initials(nm));
-      const info=el('div'); info.style.minWidth=0;
-      info.appendChild(el('div','nm', nm));
-      const last = cv.last_message_preview||cv.last_message||cv.preview||'Connected';
-      const mt=el('div','mt', last); info.appendChild(mt);
-      c.appendChild(av); c.appendChild(info);
       const pid = cv.counterpart_owner_public_id||cv.counterparty_owner_public_id||cv.owner_public_id;
+      // pairing's counterpart_display_name is the AGENT label (often the constant "Hirey Web" for
+      // web-auth users) — prefer the real profile name resolved from the public /owner/:id.json.
+      const agentName = cv.counterpart_display_name||cv.counterparty_display_name||cv.display_name||'';
+      const nm0 = /hirey web/i.test(agentName) ? '' : agentName;
+      const c=el('div','conn'); const av=el('div','av', initials(nm0||'?'));
+      const info=el('div'); info.style.minWidth=0;
+      const nmEl=el('div','nm', nm0||'Connection'); info.appendChild(nmEl);
+      const last = cv.last_message_preview||cv.last_message||cv.preview||'Connected';
+      info.appendChild(el('div','mt', last));
+      c.appendChild(av); c.appendChild(info);
       if(pid){ const go=el('a','pill go','Open ↗'); go.href=HI_BASE+'/owner/'+pid; go.target='_blank'; c.appendChild(go); }
       cw.appendChild(c);
+      if(pid){ resolveOwnerName(pid).then(o=>{ if(o&&o.display_name){ nmEl.textContent=o.display_name; av.textContent=initials(o.display_name);
+        if(o.avatar_url){ av.innerHTML=''; const im=new Image(); im.src=o.avatar_url; av.appendChild(im); } } }); }
     });
   }catch(e){ $('#connWrap').innerHTML='<div class="empty"><div class="e">⚠️</div>'+errText(e)+'</div>'; }
 }
