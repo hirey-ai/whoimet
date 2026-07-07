@@ -20,9 +20,9 @@ Page({
       const pl = await hi.call('hi.pairings', { action: 'list', group_by: 'counterparty', list_limit: 40 });
       const convs = (pl.conversations || pl.pairings || []).map((cv, i) => {
         const agentName = cv.counterpart_display_name || cv.display_name || '';
-        const nm = /hirey web/i.test(agentName) ? '' : agentName;
+        const nm = (/hirey web/i.test(agentName) ? '' : agentName) || '连接';
         const pid = cv.counterpart_owner_public_id || cv.owner_public_id || '';
-        return { key: 'c' + i, nm: nm || '连接', last: cv.last_message_preview || cv.last_message || '已连接', pid, avatar: '' };
+        return { key: 'c' + i, nm, initial: (nm.trim()[0] || '友'), last: cv.last_message_preview || cv.last_message || '已连接', pid, avatar: '' };
       });
       this.setData({ convs });
       this.resolveNames(convs);
@@ -37,7 +37,11 @@ Page({
       if (!cv.pid) continue;
       const o = await hi.ownerJson(cv.pid);
       if (o && o.display_name) {
-        this.setData({ ['convs[' + i + '].nm']: o.display_name, ['convs[' + i + '].avatar']: o.avatar_url || '' });
+        this.setData({
+          ['convs[' + i + '].nm']: o.display_name,
+          ['convs[' + i + '].initial']: (o.display_name.trim()[0] || '友'),
+          ['convs[' + i + '].avatar']: o.avatar_url || '',
+        });
       }
     }
   },
@@ -45,7 +49,17 @@ Page({
   async accept(e) {
     const id = e.currentTarget.dataset.id;
     wx.showLoading({ title: '处理中', mask: true });
-    try { await hi.call('hi.social-relationships', { action: 'request_respond', request_id: id, decision: 'accepted' }); wx.hideLoading(); ui.toast('已连接 🎉'); this.load(); }
+    try {
+      const resp = await hi.call('hi.social-relationships', { action: 'request_respond', request_id: id, decision: 'accepted' });
+      wx.hideLoading();
+      // request_respond returns non-error "no-ops" too: gate on the final status
+      // (updated:false + accepted = already connected elsewhere — still a success).
+      const st = resp && resp.request && resp.request.status;
+      if (st === 'accepted') ui.toast('已连接 🎉');
+      else if (st === 'expired') ui.toast('这个请求已过期');
+      else ui.toast('这个请求已处理过了');
+      this.load();
+    }
     catch (err) { wx.hideLoading(); ui.toast(ui.errText(err)); }
   },
 

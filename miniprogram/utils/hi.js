@@ -31,15 +31,15 @@ function wxLogin() {
 
 /* ---------------- auth ---------------- */
 // phoneDetail is the `e.detail` from a <button open-type="getPhoneNumber"> bindgetphonenumber.
-// New base-lib (>=2.21.2) yields e.detail.code; older yields encryptedData + iv. We forward whichever
-// is present to the server, which does jscode2session + phone resolve + trusted Hi bind (no OTP).
+// New-flow only (base lib >= 2.21.2 yields e.detail.code, exchanged server-side via the app
+// access_token — session_key-independent, so calling wx.login afterwards is safe). The legacy
+// encryptedData lane is deliberately unsupported: it breaks when wx.login rotates the session_key.
 async function wechatLogin(phoneDetail) {
   if (!phoneDetail || (!phoneDetail.code && !phoneDetail.encryptedData)) throw err('phone_declined');
+  if (!phoneDetail.code) throw err('wechat_lib_too_old');
   const lr = await wxLogin();
   if (!lr || !lr.code) throw err('wx_login_failed');
-  const body = { login_code: lr.code };
-  if (phoneDetail.code) body.phone_code = phoneDetail.code;
-  else { body.encrypted_data = phoneDetail.encryptedData; body.iv = phoneDetail.iv; }
+  const body = { login_code: lr.code, phone_code: phoneDetail.code };
   const r = await request({
     url: HI_BASE + '/v1/auth/wechat/miniprogram/login', method: 'POST',
     header: { 'content-type': 'application/json' }, data: body,
@@ -107,6 +107,7 @@ function readFileBytes(filePath) {
 async function uploadPhoto(tempFilePath, note) {
   const bytes = await readFileBytes(tempFilePath); // ArrayBuffer
   const size = bytes.byteLength;
+  if (size > 25 * 1024 * 1024) throw err('photo_too_large'); // server cap (OWNER_IMAGE_MAX_UPLOAD_BYTES)
   const pre = await call('hi.owner-images', {
     action: 'presign_upload', kind: 'post', original_filename: 'whoimet.jpg', mime_type: 'image/jpeg',
     size_bytes: size, title: 'Met via whoimet', caption_markdown: (note || '').slice(0, 300),
@@ -127,7 +128,8 @@ async function uploadPhoto(tempFilePath, note) {
 }
 
 /* ---------------- connect (used by the connect page) ---------------- */
-const isSelfCode = (c) => /self|own_owner/.test(String(c || ''));
+// cannot_contact_self_agent | cannot_contact_own_owner | same_source_target_agent (request_create)
+const isSelfCode = (c) => /self|own_owner|same_source_target/.test(String(c || ''));
 const okishCode = (c) => /already|exist|duplicate/.test(String(c || ''));
 // Returns 'connected' | 'self' | throws.
 async function connectTo(targetPublicId, targetAgentId, myName) {

@@ -3,8 +3,8 @@ const ui = require('../../utils/ui.js');
 
 Page({
   data: {
-    from: '对方', hl: 'On Hi', note: '', photo: '', avatar: '', verified: false,
-    pid: '', agent: '', authed: false, busy: false, done: false, isSelf: false,
+    from: '对方', fromInitial: '友', hl: 'On Hi', note: '', photo: '', avatar: '', verified: false,
+    pid: '', agent: '', authed: false, busy: false, done: false, isSelf: false, myName: '',
   },
 
   onLoad(opts) {
@@ -13,7 +13,7 @@ Page({
     const pid = opts.p || ''; const agent = opts.a || ''; const img = opts.img || '';
     const photo = (pid && img) ? hi.ownerImageUrl(pid, img) : '';
     this.setData({
-      from, note: dec(opts.note), hl: dec(opts.hl) || 'On Hi',
+      from, fromInitial: (from.trim()[0] || '友'), note: dec(opts.note), hl: dec(opts.hl) || 'On Hi',
       pid, agent, photo, authed: hi.authed(),
     });
     wx.setNavigationBarTitle({ title: from + ' 想和你连接' });
@@ -24,13 +24,15 @@ Page({
     const o = await hi.ownerJson(pid);
     if (o) {
       const patch = {};
-      if (o.display_name) { patch.from = o.display_name; wx.setNavigationBarTitle({ title: o.display_name + ' 想和你连接' }); }
+      if (o.display_name) { patch.from = o.display_name; patch.fromInitial = (o.display_name.trim()[0] || '友'); wx.setNavigationBarTitle({ title: o.display_name + ' 想和你连接' }); }
       if (o.headline) patch.hl = o.headline;
       if (o.avatar_url) patch.avatar = o.avatar_url;
       if (o.verified) patch.verified = true;
       this.setData(patch);
     }
   },
+
+  onMyName(e) { this.setData({ myName: e.detail.value }); },
 
   // WeChat login from a <button open-type="getPhoneNumber">, then connect
   onGetPhone(e) {
@@ -44,17 +46,25 @@ Page({
   async authThenConnect(detail) {
     this.setData({ busy: true });
     wx.showLoading({ title: '登录中', mask: true });
-    try { await hi.wechatLogin(detail); wx.hideLoading(); await this.doConnect(); }
-    catch (err) { wx.hideLoading(); this.setData({ busy: false }); ui.toast(ui.errText(err)); }
+    try { await hi.wechatLogin(detail); wx.hideLoading(); this.setData({ authed: true }); await this.doConnect(); }
+    catch (err) { wx.hideLoading(); ui.toast(ui.errText(err)); }
+    finally { if (!this.data.done) this.setData({ busy: false }); }
   },
 
   async doConnect() {
-    if (!this.data.pid && !this.data.agent) { ui.toast('这个链接缺少连接信息'); return; }
+    if (!this.data.pid && !this.data.agent) { this.setData({ busy: false }); ui.toast('这个链接缺少连接信息'); return; }
     this.setData({ busy: true });
     wx.showLoading({ title: '连接中', mask: true });
     try {
-      let myName = '';
-      if (hi.authed()) { try { const me = await hi.refreshMe(); myName = (me && me.profile && me.profile.display_name) || ''; } catch (e) {} }
+      let myName = (this.data.myName || '').trim();
+      if (hi.authed()) {
+        try {
+          const me = await hi.refreshMe();
+          const existing = (me && me.profile && me.profile.display_name) || '';
+          if (myName && myName !== existing) { await hi.ensureProfile(myName); } // typed name wins (fresh accounts have none)
+          else if (!myName) myName = existing;
+        } catch (e) {}
+      }
       const r = await hi.connectTo(this.data.pid, this.data.agent, myName);
       wx.hideLoading();
       this.setData({ done: true, isSelf: r === 'self', authed: hi.authed() });

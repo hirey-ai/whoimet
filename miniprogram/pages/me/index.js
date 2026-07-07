@@ -2,18 +2,19 @@ const hi = require('../../utils/hi.js');
 const ui = require('../../utils/ui.js');
 
 Page({
-  data: { authed: false, name: '', headline: '', avatar: '', publicUrl: '', busy: false },
+  data: { authed: false, name: '', nameInitial: '我', headline: '', avatar: '', publicUrl: '', busy: false },
 
   onShow() { this.setData({ authed: hi.authed() }); if (hi.authed()) this.load(); },
 
   async load() {
     try {
       const me = await hi.refreshMe(); const p = me.profile || {};
-      this.setData({ name: p.display_name || '', headline: p.headline || '', avatar: p.avatar_url || '', publicUrl: me.owner_public_url || '' });
+      const name = p.display_name || '';
+      this.setData({ name, nameInitial: (name.trim()[0] || '我'), headline: p.headline || '', avatar: p.avatar_url || '', publicUrl: me.owner_public_url || '' });
     } catch (e) {}
   },
 
-  onName(e) { this.setData({ name: e.detail.value }); },
+  onName(e) { const v = e.detail.value; this.setData({ name: v, nameInitial: (v.trim()[0] || '我') }); },
   onHl(e) { this.setData({ headline: e.detail.value }); },
 
   onGetPhone(e) {

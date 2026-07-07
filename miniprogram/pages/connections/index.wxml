@@ -25,7 +25,7 @@
       <view class="conn" wx:for="{{convs}}" wx:key="key">
         <view class="avatar">
           <image wx:if="{{item.avatar}}" src="{{item.avatar}}"></image>
-          <text wx:else>{{item.nm[0]}}</text>
+          <text wx:else>{{item.initial}}</text>
         </view>
         <view class="grow">
           <view class="conn-nm ell">{{item.nm}}</view>

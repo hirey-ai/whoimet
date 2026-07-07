@@ -15,7 +15,7 @@
       <view class="row" style="margin-bottom:8rpx">
         <view class="avatar big">
           <image wx:if="{{avatar}}" src="{{avatar}}"></image>
-          <text wx:else>{{name[0] || '我'}}</text>
+          <text wx:else>{{nameInitial}}</text>
         </view>
         <view class="grow">
           <view style="font-weight:800; font-size:34rpx">{{name || '（还没填名字）'}}</view>

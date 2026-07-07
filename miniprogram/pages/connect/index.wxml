@@ -10,7 +10,7 @@
     <view class="row">
       <view class="avatar big">
         <image wx:if="{{avatar}}" src="{{avatar}}"></image>
-        <text wx:else>{{from[0]}}</text>
+        <text wx:else>{{fromInitial}}</text>
       </view>
       <view class="grow">
         <view class="who-nm">{{from}}<text wx:if="{{verified}}" class="vf"> ✓</text></view>
@@ -27,6 +27,10 @@
     <view class="cta-t">和 {{from}} 连接</view>
     <view class="cta-p">用微信登录，几秒钟你俩就互相连上。</view>
 
+    <view class="field" style="margin-bottom:20rpx">
+      <view class="label">你的名字（对方会看到）</view>
+      <input class="input" value="{{myName}}" placeholder="怎么称呼你" bindinput="onMyName" />
+    </view>
     <block wx:if="{{authed}}">
       <button class="btn" bindtap="oneTap" disabled="{{busy}}">一键连接</button>
     </block>

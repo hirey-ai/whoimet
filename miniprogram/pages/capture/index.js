@@ -12,7 +12,9 @@ Page({
     if (hi.authed()) {
       hi.refreshMe().then(() => {
         const me = hi.ME();
-        this.setData({ name: (me && me.profile && me.profile.display_name) || '' });
+        const server = (me && me.profile && me.profile.display_name) || '';
+        // don't clobber a name the user is mid-typing; only fill when empty
+        if (server && !(this.data.name || '').trim()) this.setData({ name: server });
       }).catch(() => {});
     }
   },
@@ -30,8 +32,9 @@ Page({
     });
   },
   clearPhoto() { this.setData({ photo: '', ready: false, share: null }); },
-  onNote(e) { this.setData({ note: e.detail.value }); },
-  onName(e) { this.setData({ name: e.detail.value }); },
+  // editing after the card was generated invalidates it — force a re-generate
+  onNote(e) { this.setData({ note: e.detail.value, ready: false, share: null }); },
+  onName(e) { this.setData({ name: e.detail.value, ready: false, share: null }); },
 
   // WeChat login (from a <button open-type="getPhoneNumber">)
   async onGetPhone(e) {
@@ -61,6 +64,9 @@ Page({
     try {
       await hi.ensureProfile(name);
       const up = await hi.uploadPhoto(this.data.photo, this.data.note);
+      // persist BEFORE building the share card: FileSystemManager.saveFile MOVES the temp file,
+      // so a share.imageUrl still pointing at the temp path would be dead by share time.
+      const saved = await ui.persistPhoto(this.data.photo);
       const me = hi.ME(); const pid = me && me.public_id; const s = hi.getSession();
       const q = ['from=' + encodeURIComponent(name)];
       if (pid) q.push('p=' + pid);
@@ -69,12 +75,11 @@ Page({
       if (this.data.note) q.push('note=' + encodeURIComponent(this.data.note.slice(0, 80)));
       if (me && me.profile && me.profile.headline) q.push('hl=' + encodeURIComponent(me.profile.headline));
       const path = '/pages/connect/index?' + q.join('&');
-      const share = { title: name + ' 想在 Hi 上和你连接 👋', path, imageUrl: this.data.photo };
+      const share = { title: name + ' 想在 Hi 上和你连接 👋', path, imageUrl: saved };
 
-      const saved = await ui.persistPhoto(this.data.photo);
       ui.addRecent({ id: Date.now(), photo: saved, note: this.data.note, imageId: up.id, isPublic: up.isPublic, ts: Date.now() });
 
-      this.setData({ ready: true, share, recents: ui.getRecents() });
+      this.setData({ photo: saved, ready: true, share, recents: ui.getRecents() });
       wx.hideLoading();
       if (!up.isPublic) ui.toast('照片审核中，仍会随卡片一起发送');
     } catch (err) {
